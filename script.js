@@ -237,11 +237,71 @@ function retakePhoto() {
     openCameraUI(); // 重新走一次開啟相機的流程
 }
 
+// 關鍵新增：從剛剛引入的官方套件中抽取出 Gemini 核心大腦
+import { GoogleGenAI } from "@google/generative-ai";
+
 async function submitToGemini() {
-    if (GEMINI_API_KEY === "YOUR_GEMINI_API_KEY_HERE") {
-        alert("請先在程式碼中填入您的 Gemini API Key！");
-        return;
+    // 直接寫死妳在 AI Studio 申請的滿血版金鑰
+    const apiKey = "AIzaSyDOMLfds9bdvS3BBEHGTxW0lDCDI-Rz7wg"; 
+
+    const preview = document.getElementById('photo-preview');
+    const resultBox = document.getElementById('ai-result-box');
+    
+    // 顯示載入中狀態
+    resultBox.style.display = 'block';
+    resultBox.innerHTML = `
+        <div style="text-align: center;">
+            <div class="loading-spinner"></div><br>
+            ⏳ AI 助教正在透過官方通道讀取照片，請稍候...
+        </div>
+    `;
+    toggleSpeak('loading', "正在為您分析照片，請稍候。");
+
+    try {
+        // 1. 初始化 Google 官方 AI 總管
+        const ai = new GoogleGenAI({ apiKey: apiKey });
+
+        // 2. 將 Canvas 拍下的圖片轉換為官方指定的傳輸格式
+        const base64Image = preview.src.split(',')[1];
+        const imagePart = {
+            inlineData: {
+                data: base64Image,
+                mimeType: "image/jpeg"
+            },
+        };
+
+        const promptText = "根據這個影像給予口腔清潔度建議";
+
+        // 3. 透過官方 SDK 直接呼叫模型（完全避開 fetch 網址的 404 陷阱！）
+        const response = await ai.models.generateContent({
+            model: "gemini-1.5-flash",
+            contents: [promptText, imagePart],
+        });
+
+        // 4. 讀取 AI 回覆的文字
+        const aiText = response.text;
+        
+        // 顯示在畫面上
+        resultBox.innerHTML = `<strong>🤖 AI 助教建議：</strong><br><br>${aiText.replace(/\n/g, '<br>')}`;
+        toggleSpeak('ai_result', aiText); 
+
+    } catch (error) {
+        console.error("官方 SDK 報錯：", error);
+        resultBox.innerHTML = `❌ 分析失敗。<br><small style="color:red;">錯誤原因：${error.message}</small>`;
+        toggleSpeak('ai_error', "分析失敗，請稍後再試。");
     }
+}
+
+// ⚠️ 關鍵修正：因為加上了 type="module"，原本 HTML 上的 onclick 會找不到 function。
+// 我們必須把這個 function 強制綁定給全域視窗，網頁上的按鈕才按得動！
+window.submitToGemini = submitToGemini;
+window.openCameraUI = openCameraUI;
+window.takePhoto = takePhoto;
+window.retakePhoto = retakePhoto;
+window.startQuiz = startQuiz;
+window.toggleSection = toggleSection;
+window.showInteractive = showInteractive;
+window.playBrushVideo = playBrushVideo;
 
     const preview = document.getElementById('photo-preview');
     const resultBox = document.getElementById('ai-result-box');
