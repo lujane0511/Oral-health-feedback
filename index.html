@@ -20,14 +20,11 @@
         <button class="main-btn btn-denture" onclick="showInteractive('denture')">🦷 假牙清潔教學</button>
         <button class="main-btn btn-floss" onclick="showInteractive('floss')">🧵 牙線棒使用</button>
         <button class="main-btn btn-quiz" onclick="startQuiz()">📝 進行口腔衛教測驗</button>
-        <!-- 新增：相機功能按鈕 -->
         <button class="main-btn btn-camera" onclick="openCameraUI()">📷 口腔快照分析</button>
     </div>
 
-    <!-- 原有：互動教學區 -->
     <div id="interactive-display" class="display-area"></div>
 
-    <!-- 原有：測驗區 -->
     <div id="quiz-display" class="quiz-area">
         <div class="quiz-title" id="q-title">正在載入題庫...</div>
         <div id="q-options"></div>
@@ -35,17 +32,14 @@
         <button class="next-btn" id="q-next" onclick="nextQuestion()">下一題 ➡️</button>
     </div>
 
-    <!-- 新增：相機與 AI 分析區 -->
     <div id="camera-display" class="display-area">
         <h3 class="camera-title">📷 口腔清潔度 AI 分析</h3>
         
-        <!-- 影像串流區 -->
         <div id="camera-container">
             <video id="video-stream" autoplay playsinline></video>
             <button onclick="takePhoto()" class="camera-btn btn-capture">📸 拍下口腔照片</button>
         </div>
 
-        <!-- 預覽與送出區 -->
         <div id="preview-container" style="display:none;">
             <canvas id="photo-canvas" style="display:none;"></canvas>
             <img id="photo-preview" alt="口腔照片預覽" />
@@ -55,18 +49,16 @@
             </div>
         </div>
 
-        <!-- AI 回覆顯示區 -->
         <div class="feedback-box ai-response-box" id="ai-result-box"></div>
     </div>
 
     <hr>
 
-    <!-- 原有：知識庫區塊 -->
     <div class="section-box">
         <div class="section-header" onclick="toggleSection('s1')">1. 常見口腔問題與病因 <span>▼</span></div>
         <div id="s1" class="section-content">
             <div class="point"><strong>牙周病與齲齒</strong> 因牙齦萎縮、清潔不易，導致牙根蛀牙。</div>
-            <div class="point"><strong>假牙不適</strong> 清潔不當或不合，導致黏膜受傷潰瘍。</div>
+            <div class="point"><strong>假牙不適</strong> 清潔不當或不合，導致黏膜受傷潰瘍.</div>
             <div class="point"><strong>口乾症</strong> 唾液減少會增加感染與牙菌斑風險。</div>
             <div class="point"><strong>功能退化</strong> 咀嚼吞嚥下降可能導致營養不良。</div>
         </div>
@@ -89,13 +81,14 @@
         </div>
     </div>
 </div>
+
 <script type="importmap">
-      {
-        "imports": {
-          "@google/generative-ai": "https://esm.run/@google/generative-ai"
-        }
-      }
-    </script>
-<script src="script.js"></script>
+  {
+    "imports": {
+      "@google/generative-ai": "https://esm.run/@google/generative-ai"
+    }
+  }
+</script>
+<script src="script.js" type="module"></script>
 </body>
 </html>
