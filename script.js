@@ -1,5 +1,3 @@
-import { GoogleGenAI } from "@google/generative-ai";
-
 // ==========================================
 // API 設定 (已填入您的 AI Studio 滿血版金鑰)
 // ==========================================
@@ -182,7 +180,7 @@ function nextQuestion() {
 }
 
 // ==========================================
-// 新增：相機與 Gemini API 官方 SDK 影像分析
+// 新增：相機與 Gemini 原生 API 分析功能
 // ==========================================
 async function openCameraUI() {
     hideAllAreas();
@@ -213,6 +211,7 @@ function stopCamera() {
     }
 }
 
+// 拍照功能
 function takePhoto() {
     const video = document.getElementById('video-stream');
     const canvas = document.getElementById('photo-canvas');
@@ -235,6 +234,7 @@ function retakePhoto() {
     openCameraUI(); 
 }
 
+// 送出給 Gemini (使用不打架、不依賴套件的最穩固原生 POST 格式)
 async function submitToGemini() {
     const preview = document.getElementById('photo-preview');
     const resultBox = document.getElementById('ai-result-box');
@@ -243,50 +243,54 @@ async function submitToGemini() {
     resultBox.innerHTML = `
         <div style="text-align: center;">
             <div class="loading-spinner"></div><br>
-            ⏳ AI 助教正在透過官方通道讀取照片，請稍候...
+            ⏳ AI 助教正在透過安全通道解析照片，請稍候...
         </div>
     `;
     toggleSpeak('loading', "正在為您分析照片，請稍候。");
 
+    // 取得 base64 字串
+    const base64Image = preview.src.split(',')[1];
+    const promptText = "根據這個影像給予口腔清潔度建議";
+
+    // 原生官方標準多模態請求結構
+    const requestData = {
+        contents: [{
+            parts: [
+                { text: promptText },
+                {
+                    inlineData: {
+                        mimeType: "image/jpeg",
+                        data: base64Image
+                    }
+                }
+            ]
+        }]
+    };
+
     try {
-        // 1. 初始化 Google 官方 SDK 大腦清單
-        const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
-
-        // 2. 將 Canvas 圖片包裝成官方指定結構
-        const base64Image = preview.src.split(',')[1];
-        const imagePart = {
-            inlineData: {
-                data: base64Image,
-                mimeType: "image/jpeg"
-            },
-        };
-
-        const promptText = "根據這個影像給予口腔清潔度建議";
-
-        // 3. 呼叫官方 SDK 連線（繞過一切網址 404 死結）
-        const response = await ai.models.generateContent({
-            model: "gemini-1.5-flash",
-            contents: [promptText, imagePart],
+        // 使用最相容的 v1beta 接口，直接發送原生 POST
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestData)
         });
 
-        const aiText = response.text;
+        const data = await response.json();
+
+        if (!response.ok || data.error) {
+            const errMsg = data.error ? data.error.message : "HTTP 錯誤";
+            throw new Error(errMsg);
+        }
+
+        // 解析回覆文字
+        const aiText = data.candidates[0].content.parts[0].text;
         
         resultBox.innerHTML = `<strong>🤖 AI 助教建議：</strong><br><br>${aiText.replace(/\n/g, '<br>')}`;
         toggleSpeak('ai_result', aiText); 
 
     } catch (error) {
-        console.error("官方 SDK 報錯：", error);
+        console.error("API 連線錯誤：", error);
         resultBox.innerHTML = `❌ 分析失敗。<br><small style="color:red;">錯誤原因：${error.message}</small>`;
         toggleSpeak('ai_error', "分析失敗，請稍後再試。");
     }
 }
-
-// 將所有 Function 綁定到 window 全域，確保 HTML 的 onclick 能夠完美點擊
-window.submitToGemini = submitToGemini;
-window.openCameraUI = openCameraUI;
-window.takePhoto = takePhoto;
-window.retakePhoto = retakePhoto;
-window.startQuiz = startQuiz;
-window.toggleSection = toggleSection;
-window.showInteractive = showInteractive;
-window.playBrushVideo = playBrushVideo;
