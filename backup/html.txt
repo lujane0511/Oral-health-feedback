@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 口腔衛教協作工具 - 完全整合版</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container">
+    <h1>🤖 AI 口腔智慧助教</h1>
+    <div class="ai-status" id="ai-msg">
+        阿公阿嬤早安！我是口腔小管家。<br>今天我們要一起守護牙齒喔！請點選下方功能：
+    </div>
+
+    <div class="btn-grid">
+        <button class="main-btn btn-tip" onclick="showInteractive('tip')">💡 刷牙重要提示</button>
+        <button class="main-btn btn-brush" onclick="playBrushVideo()">🪥 貝氏刷牙法</button>
+        <button class="main-btn btn-denture" onclick="showInteractive('denture')">🦷 假牙清潔教學</button>
+        <button class="main-btn btn-floss" onclick="showInteractive('floss')">🧵 牙線棒使用</button>
+        <button class="main-btn btn-quiz" onclick="startQuiz()">📝 進行口腔衛教測驗</button>
+        <button class="main-btn btn-camera" onclick="openCameraUI()">📷 口腔快照分析</button>
+    </div>
+
+    <div id="interactive-display" class="display-area"></div>
+
+    <div id="quiz-display" class="quiz-area">
+        <div class="quiz-title" id="q-title">正在載入題庫...</div>
+        <div id="q-options"></div>
+        <div class="feedback-box" id="q-feedback"></div>
+        <button class="next-btn" id="q-next" onclick="nextQuestion()">下一題 ➡️</button>
+    </div>
+
+    <div id="camera-display" class="display-area">
+        <h3 class="camera-title">📷 口腔清潔度 AI 分析</h3>
+        
+        <div id="camera-container">
+            <video id="video-stream" autoplay playsinline></video>
+            <button onclick="takePhoto()" class="camera-btn btn-capture">📸 拍下口腔照片</button>
+        </div>
+
+        <div id="preview-container" style="display:none;">
+            <canvas id="photo-canvas" style="display:none;"></canvas>
+            <img id="photo-preview" alt="口腔照片預覽" />
+            <div class="btn-grid" style="margin-top: 15px; margin-bottom: 0;">
+                <button onclick="retakePhoto()" class="camera-btn btn-retake">🔄 重新拍照</button>
+                <button onclick="submitToGemini()" class="camera-btn btn-submit">🚀 送出給 AI 分析</button>
+            </div>
+        </div>
+
+        <div class="feedback-box ai-response-box" id="ai-result-box"></div>
+    </div>
+
+    <hr>
+
+    <div class="section-box">
+        <div class="section-header" onclick="toggleSection('s1')">1. 常見口腔問題與病因 <span>▼</span></div>
+        <div id="s1" class="section-content">
+            <div class="point"><strong>牙周病與齲齒</strong> 因牙齦萎縮、清潔不易，導致牙根蛀牙。</div>
+            <div class="point"><strong>假牙不適</strong> 清潔不當或不合，導致黏膜受傷潰瘍。</div>
+            <div class="point"><strong>口乾症</strong> 唾液減少會增加感染與牙菌斑風險。</div>
+            <div class="point"><strong>功能退化</strong> 咀嚼吞嚥下降可能導致營養不良。</div>
+        </div>
+    </div>
+    <div class="section-box">
+        <div class="section-header" onclick="toggleSection('s2')">2. 日常照護重點 <span>▼</span></div>
+        <div id="s2" class="section-content">
+            <div class="point"><strong>徹底清潔</strong> 自然牙用軟毛刷、牙間刷；假牙睡前取下清洗，忌用牙膏。</div>
+            <div class="point"><strong>口腔黏膜清潔</strong> 每日使用清潔棒或紗布清潔舌苔，保持濕潤。</div>
+            <div class="point"><strong>維持濕潤</strong> 多喝水、頻繁漱口，改善口乾困擾。</div>
+            <div class="point"><strong>飲食注意</strong> 避免辛辣過燙，補充維生素B群與胡蘿蔔素。</div>
+        </div>
+    </div>
+    <div class="section-box">
+        <div class="section-header" onclick="toggleSection('s3')">3. 預防與就醫提醒 <span>▼</span></div>
+        <div id="s3" class="section-content">
+            <div class="point"><strong>定期健檢</strong> 每半年至少進行一次口腔檢查。</div>
+            <div class="point"><strong>就醫警訊</strong> 黏膜潰瘍超過兩週未癒，請務必就醫。</div>
+            <div class="point"><strong>假牙調整</strong> 若有壓痛不穩應回診，請勿自行修理。</div>
+        </div>
+    </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

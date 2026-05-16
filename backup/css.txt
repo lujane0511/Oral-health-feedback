@@ -1,0 +1,49 @@
+:root { --primary: #0066CC; --success: #28a745; --warning: #ffc107; --danger: #dc3545; --bg: #f4f7f9; }
+body { font-family: "Microsoft JhengHei", sans-serif; background-color: var(--bg); margin: 0; padding: 15px; }
+.container { max-width: 800px; margin: auto; background: white; padding: 25px; border-radius: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+h1 { color: var(--primary); text-align: center; font-size: 2.2rem; }
+.ai-status { background: #eef6ff; padding: 20px; border-radius: 20px; margin-bottom: 20px; border-left: 10px solid var(--primary); font-size: 1.5rem; color: #333; line-height: 1.8; }
+
+/* 快捷功能按鈕 */
+.btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+.main-btn { padding: 20px 10px; font-size: 1.4rem; border-radius: 15px; border: none; cursor: pointer; color: white; font-weight: bold; transition: 0.3s; }
+.btn-tip { background-color: #6c757d; }
+.btn-brush { background-color: var(--primary); }
+.btn-denture { background-color: var(--success); }
+.btn-floss { background-color: #fd7e14; }
+.btn-quiz { background-color: #6f42c1; grid-column: span 2; margin-top: 10px; }
+.btn-camera { background-color: #17a2b8; grid-column: span 2; } /* 新增相機按鈕顏色 */
+
+/* 顯示區塊 */
+.display-area { display: none; margin-top: 20px; padding: 20px; background: #fffdf5; border: 3px dashed var(--warning); border-radius: 20px; font-size: 1.5rem; }
+.video-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 15px; margin-bottom: 15px; }
+.video-container iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+
+/* 測驗區塊專屬樣式 */
+.quiz-area { display: none; margin-top: 20px; padding: 25px; background: #f8f9fa; border: 3px solid #6f42c1; border-radius: 20px; }
+.quiz-title { font-size: 1.6rem; color: #333; font-weight: bold; margin-bottom: 20px; line-height: 1.5; }
+.option-btn { display: block; width: 100%; text-align: left; margin: 10px 0; padding: 15px; font-size: 1.3rem; border: 2px solid #ddd; border-radius: 10px; background: white; cursor: pointer; transition: 0.2s; }
+.option-btn:hover:not(:disabled) { background: #eef6ff; border-color: var(--primary); }
+.option-btn.correct { background: var(--success); color: white; border-color: var(--success); }
+.option-btn.wrong { background: var(--danger); color: white; border-color: var(--danger); }
+.option-btn:disabled { cursor: not-allowed; }
+.feedback-box { margin-top: 20px; padding: 15px; border-radius: 10px; font-size: 1.4rem; font-weight: bold; display: none; text-align: center; }
+.next-btn { display: block; width: 100%; margin-top: 20px; padding: 15px; font-size: 1.4rem; background: var(--primary); color: white; border: none; border-radius: 15px; cursor: pointer; display: none; }
+
+/* 下方專業知識庫 */
+.section-box { border: 1px solid #ddd; border-radius: 15px; margin-bottom: 10px; overflow: hidden; background: #fff; }
+.section-header { background: #f8f9fa; padding: 15px; font-size: 1.4rem; font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; }
+.section-content { padding: 15px; font-size: 1.3rem; display: none; line-height: 1.6; }
+.point { margin-bottom: 10px; padding-left: 12px; border-left: 4px solid var(--primary); }
+.point strong { color: var(--primary); display: block; }
+
+/* ====== 新增：相機與AI區塊專屬樣式 ====== */
+.camera-title { color: #17a2b8; font-weight: bold; margin-top: 0; }
+#video-stream, #photo-preview { width: 100%; border-radius: 15px; border: 2px solid #ddd; background-color: #000; }
+.camera-btn { padding: 15px; font-size: 1.3rem; border-radius: 15px; border: none; cursor: pointer; color: white; font-weight: bold; width: 100%; margin-top: 10px; }
+.btn-capture { background-color: #17a2b8; }
+.btn-retake { background-color: #6c757d; }
+.btn-submit { background-color: var(--primary); }
+.ai-response-box { background: #eef6ff; color: #333; border: 2px solid var(--primary); text-align: left; line-height: 1.6; }
+.loading-spinner { display: inline-block; width: 30px; height: 30px; border: 4px solid rgba(0, 102, 204, 0.3); border-radius: 50%; border-top-color: var(--primary); animation: spin 1s ease-in-out infinite; margin-bottom: 10px; }
+@keyframes spin { to { transform: rotate(360deg); } }
