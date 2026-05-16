@@ -34,7 +34,7 @@ async function submitToGemini() {
 
     try {
         // 使用你的 Cloudflare Worker Proxy
-        const proxyUrl = "https://withered-boat-fb8a.lujane0511.workers.dev/v1beta/models/gemini-2.5-flash:generateContent";
+     const proxyUrl = "https://withered-boat-fb8a.lujane0511.workers.dev/v1beta/models/gemini-2.5-flash:generateContent";
 
         const response = await fetch(proxyUrl, {
             method: 'POST',
