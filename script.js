@@ -1,5 +1,7 @@
+import { GoogleGenAI } from "@google/generative-ai";
+
 // ==========================================
-// API 設定 (請填入您的 Gemini API Key)
+// API 設定 (已填入您的 AI Studio 滿血版金鑰)
 // ==========================================
 const GEMINI_API_KEY = "AIzaSyDOMLfds9bdvS3BBEHGTxW0lDCDI-Rz7wg"; 
 
@@ -10,7 +12,7 @@ const interData = {
 };
 
 let currentSpeakingId = null;
-let videoStream = null; // 儲存相機串流
+let videoStream = null; 
 
 // ==========================================
 // 原有：語音與介面切換功能
@@ -35,7 +37,7 @@ function hideAllAreas() {
     document.getElementById('interactive-display').style.display = 'none';
     document.getElementById('quiz-display').style.display = 'none';
     document.getElementById('camera-display').style.display = 'none';
-    stopCamera(); // 切換畫面時關閉相機，節省資源
+    stopCamera(); 
 }
 
 function toggleSection(id) {
@@ -77,7 +79,7 @@ function playBrushVideo() {
 }
 
 // ==========================================
-// 原有：測驗系統功能 (為節省長度，保留您的原邏輯)
+// 原有：測驗系統功能
 // ==========================================
 let allQuestions = []; 
 let currentQuizBatch = []; 
@@ -180,7 +182,7 @@ function nextQuestion() {
 }
 
 // ==========================================
-// 新增：相機與 Gemini API 影像分析功能
+// 新增：相機與 Gemini API 官方 SDK 影像分析
 // ==========================================
 async function openCameraUI() {
     hideAllAreas();
@@ -195,7 +197,6 @@ async function openCameraUI() {
 
     try {
         const video = document.getElementById('video-stream');
-        // 請求相機權限，優先使用後置鏡頭(對準口腔比較方便)
         videoStream = await navigator.mediaDevices.getUserMedia({ 
             video: { facingMode: 'environment' } 
         });
@@ -217,37 +218,27 @@ function takePhoto() {
     const canvas = document.getElementById('photo-canvas');
     const preview = document.getElementById('photo-preview');
 
-    // 將影片畫面繪製到 Canvas
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    // 轉成圖片 URL 顯示預覽
     const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
     preview.src = dataUrl;
 
-    // 切換顯示區域
     document.getElementById('camera-container').style.display = 'none';
     document.getElementById('preview-container').style.display = 'block';
     
-    stopCamera(); // 拍完照先關閉相機節省資源
+    stopCamera(); 
 }
 
 function retakePhoto() {
-    openCameraUI(); // 重新走一次開啟相機的流程
+    openCameraUI(); 
 }
 
-// 關鍵新增：從剛剛引入的官方套件中抽取出 Gemini 核心大腦
-import { GoogleGenAI } from "@google/generative-ai";
-
 async function submitToGemini() {
-    // 直接寫死妳在 AI Studio 申請的滿血版金鑰
-    const apiKey = "AIzaSyDOMLfds9bdvS3BBEHGTxW0lDCDI-Rz7wg"; 
-
     const preview = document.getElementById('photo-preview');
     const resultBox = document.getElementById('ai-result-box');
     
-    // 顯示載入中狀態
     resultBox.style.display = 'block';
     resultBox.innerHTML = `
         <div style="text-align: center;">
@@ -258,10 +249,10 @@ async function submitToGemini() {
     toggleSpeak('loading', "正在為您分析照片，請稍候。");
 
     try {
-        // 1. 初始化 Google 官方 AI 總管
-        const ai = new GoogleGenAI({ apiKey: apiKey });
+        // 1. 初始化 Google 官方 SDK 大腦清單
+        const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 
-        // 2. 將 Canvas 拍下的圖片轉換為官方指定的傳輸格式
+        // 2. 將 Canvas 圖片包裝成官方指定結構
         const base64Image = preview.src.split(',')[1];
         const imagePart = {
             inlineData: {
@@ -272,16 +263,14 @@ async function submitToGemini() {
 
         const promptText = "根據這個影像給予口腔清潔度建議";
 
-        // 3. 透過官方 SDK 直接呼叫模型（完全避開 fetch 網址的 404 陷阱！）
+        // 3. 呼叫官方 SDK 連線（繞過一切網址 404 死結）
         const response = await ai.models.generateContent({
             model: "gemini-1.5-flash",
             contents: [promptText, imagePart],
         });
 
-        // 4. 讀取 AI 回覆的文字
         const aiText = response.text;
         
-        // 顯示在畫面上
         resultBox.innerHTML = `<strong>🤖 AI 助教建議：</strong><br><br>${aiText.replace(/\n/g, '<br>')}`;
         toggleSpeak('ai_result', aiText); 
 
@@ -292,8 +281,7 @@ async function submitToGemini() {
     }
 }
 
-// ⚠️ 關鍵修正：因為加上了 type="module"，原本 HTML 上的 onclick 會找不到 function。
-// 我們必須把這個 function 強制綁定給全域視窗，網頁上的按鈕才按得動！
+// 將所有 Function 綁定到 window 全域，確保 HTML 的 onclick 能夠完美點擊
 window.submitToGemini = submitToGemini;
 window.openCameraUI = openCameraUI;
 window.takePhoto = takePhoto;
@@ -302,54 +290,3 @@ window.startQuiz = startQuiz;
 window.toggleSection = toggleSection;
 window.showInteractive = showInteractive;
 window.playBrushVideo = playBrushVideo;
-
-    const preview = document.getElementById('photo-preview');
-    const resultBox = document.getElementById('ai-result-box');
-    
-    // 取得 base64 編碼 (去除前面的 data:image/jpeg;base64,)
-    const base64Image = preview.src.split(',')[1];
-    const promptText = "跟據這個影像給予口腔清潔度建議";
-
-    // 顯示載入中狀態
-    resultBox.style.display = 'block';
-    resultBox.innerHTML = `
-        <div style="text-align: center;">
-            <div class="loading-spinner"></div><br>
-            ⏳ AI 助教正在仔細看您的照片，請稍候...
-        </div>
-    `;
-    toggleSpeak('loading', "正在為您分析照片，請稍候。");
-
-    // 準備傳送給 Gemini 1.5 Flash 的資料格式
-    const requestBody = {
-        contents: [{
-            parts: [
-                { text: promptText },
-                { inline_data: { mime_type: "image/jpeg", data: base64Image } }
-            ]
-        }]
-    };
-
-    try {
-     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(requestBody)
-        });
-
-        if (!response.ok) throw new Error("API 請求失敗");
-
-        const data = await response.json();
-        // 解析 Gemini 的文字回覆
-        const aiText = data.candidates[0].content.parts[0].text;
-        
-        // 將換行符號轉為 <br> 以在網頁顯示
-        resultBox.innerHTML = `<strong>🤖 AI 助教建議：</strong><br><br>${aiText.replace(/\n/g, '<br>')}`;
-        toggleSpeak('ai_result', aiText); // 唸出 AI 的建議
-
-    } catch (error) {
-        console.error(error);
-        resultBox.innerHTML = "❌ 分析失敗，請檢查網路連線或 API Key 設定。";
-        toggleSpeak('ai_error', "分析失敗，請稍後再試。");
-    }
-}
