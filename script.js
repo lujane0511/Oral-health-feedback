@@ -1,19 +1,29 @@
 // ==========================================
-// API 設定 (已填入您的 AI Studio 滿血版金鑰)
+// API 設定
 // ==========================================
-const GEMINI_API_KEY = "AIzaSyDOMLfds9bdvS3BBEHGTxW0lDCDI-Rz7wg"; 
+const GEMINI_API_KEY = "AIzaSyDOMLfds9bdvS3BBEHGTxW0lDCDI-Rz7wg";
 
+// 口腔衛教互動資料
 const interData = {
-    tip: { title: "刷牙前重要提示", text: "● 餐後等待：吃完東西等20-30分鐘再刷。<br>● 時間：每次至少2分鐘，每天至少2次。<br>● 牙膏：用含氟牙膏，不需過度漱口。" },
-    denture: { title: "假牙清潔步驟", text: "● 餐後清潔：用餐後取下，用專用軟刷與清水刷洗。<br>● 忌用牙膏：避免研磨劑刮傷假牙。<br>● 定期浸泡：每2-3天用清潔錠泡5-15分鐘。<br>● 照護牙齦：沒真牙也要刷牙齦和上顎。" },
-    floss: { title: "牙線棒使用教學", text: "● 輕柔滑入：左右移動慢慢滑進牙縫。<br>● C字型刮牙：緊貼牙齒面成C字，上下滑動。<br>● 分段清理：清完1-2個縫就沖洗或換新。" }
+    tip: { 
+        title: "刷牙前重要提示", 
+        text: "● 餐後等待：吃完東西等20-30分鐘再刷。<br>● 時間：每次至少2分鐘，每天至少2次。<br>● 牙膏：用含氟牙膏，不需過度漱口。" 
+    },
+    denture: { 
+        title: "假牙清潔步驟", 
+        text: "● 餐後清潔：用餐後取下，用專用軟刷與清水刷洗。<br>● 忌用牙膏：避免研磨劑刮傷假牙。<br>● 定期浸泡：每2-3天用清潔錠泡5-15分鐘。<br>● 照護牙齦：沒真牙也要刷牙齦和上顎。" 
+    },
+    floss: { 
+        title: "牙線棒使用教學", 
+        text: "● 輕柔滑入：左右移動慢慢滑進牙縫。<br>● C字型刮牙：緊貼牙齒面成C字，上下滑動。<br>● 分段清理：清完1-2個縫就沖洗或換新。" 
+    }
 };
 
 let currentSpeakingId = null;
-let videoStream = null; 
+let videoStream = null;
 
 // ==========================================
-// 原有：語音與介面切換功能
+// 語音功能
 // ==========================================
 function toggleSpeak(id, txt) {
     if (currentSpeakingId === id && window.speechSynthesis.speaking) {
@@ -22,25 +32,29 @@ function toggleSpeak(id, txt) {
         return;
     }
     window.speechSynthesis.cancel();
-    const cleanTxt = txt.replace(/<br>/g, '、').replace(/●/g, ''); 
+    const cleanTxt = txt.replace(/<br>/g, '、').replace(/●/g, '');
     const s = new SpeechSynthesisUtterance(cleanTxt);
-    s.lang = 'zh-TW'; 
+    s.lang = 'zh-TW';
     s.rate = 0.85;
-    s.onend = function() { if (currentSpeakingId === id) { currentSpeakingId = null; } };
+    s.onend = () => { if (currentSpeakingId === id) currentSpeakingId = null; };
     window.speechSynthesis.speak(s);
     currentSpeakingId = id;
 }
 
+// ==========================================
+// 畫面切換
+// ==========================================
 function hideAllAreas() {
     document.getElementById('interactive-display').style.display = 'none';
     document.getElementById('quiz-display').style.display = 'none';
     document.getElementById('camera-display').style.display = 'none';
-    stopCamera(); 
+    stopCamera();
 }
 
 function toggleSection(id) {
     const el = document.getElementById(id);
     const isVisible = el.style.display === 'block';
+    
     if (isVisible) {
         el.style.display = 'none';
         window.speechSynthesis.cancel();
@@ -52,6 +66,9 @@ function toggleSection(id) {
     }
 }
 
+// ==========================================
+// 互動內容
+// ==========================================
 function showInteractive(key) {
     hideAllAreas();
     const area = document.getElementById('interactive-display');
@@ -77,11 +94,11 @@ function playBrushVideo() {
 }
 
 // ==========================================
-// 原有：測驗系統功能
+// 測驗系統
 // ==========================================
-let allQuestions = []; 
-let currentQuizBatch = []; 
-let currentQuestionIndex = 0; 
+let allQuestions = [];
+let currentQuizBatch = [];
+let currentQuestionIndex = 0;
 
 async function startQuiz() {
     window.speechSynthesis.cancel();
@@ -117,10 +134,16 @@ function parseQuestions(text) {
             let options = [lines[i+1], lines[i+2], lines[i+3], lines[i+4]];
             let ansMatch = (lines[i+5] || "").match(/[A-D]/);
             if (ansMatch && options.length === 4) {
-                allQuestions.push({ question: qText, options: options, correctOptionLetter: ansMatch[0] });
+                allQuestions.push({ 
+                    question: qText, 
+                    options: options, 
+                    correctOptionLetter: ansMatch[0] 
+                });
             }
-            i += 6; 
-        } else { i++; }
+            i += 6;
+        } else { 
+            i++; 
+        }
     }
 }
 
@@ -128,9 +151,10 @@ function renderQuestion() {
     const qData = currentQuizBatch[currentQuestionIndex];
     document.getElementById('q-feedback').style.display = 'none';
     document.getElementById('q-next').style.display = 'none';
+    
     const optionsEl = document.getElementById('q-options');
     optionsEl.innerHTML = '';
-    
+   
     document.getElementById('q-title').innerText = `第 ${currentQuestionIndex + 1} 題 (共5題)：\n${qData.question}`;
     toggleSpeak('q_' + currentQuestionIndex, `第 ${currentQuestionIndex + 1} 題：${qData.question}`);
 
@@ -145,10 +169,11 @@ function renderQuestion() {
 }
 
 function checkAnswer(selectedBtn, selectedLetter, correctLetter, allOptionsText) {
-    window.speechSynthesis.cancel(); 
+    window.speechSynthesis.cancel();
     const allBtns = document.querySelectorAll('.option-btn');
     const feedbackEl = document.getElementById('q-feedback');
     const nextBtn = document.getElementById('q-next');
+
     allBtns.forEach(btn => btn.disabled = true);
 
     const correctIndex = correctLetter.charCodeAt(0) - 65;
@@ -164,30 +189,35 @@ function checkAnswer(selectedBtn, selectedLetter, correctLetter, allOptionsText)
         allBtns[correctIndex].classList.add('correct');
         feedbackEl.style.background = '#f8d7da';
         feedbackEl.style.color = '#721c24';
-        feedbackText = "❌ 答錯了喔！<br>正確答案是：<br>" + allOptionsText[correctIndex];
+        feedbackText = `❌ 答錯了喔！<br>正確答案是：<br>${allOptionsText[correctIndex]}`;
     }
+
     feedbackEl.innerHTML = feedbackText;
     feedbackEl.style.display = 'block';
     toggleSpeak('feedback', feedbackText.replace(/<br>/g, ''));
-
+    
     nextBtn.innerText = currentQuestionIndex >= currentQuizBatch.length - 1 ? "🔄 測驗結束，重新測驗" : "下一題 ➡️";
     nextBtn.style.display = 'block';
 }
 
 function nextQuestion() {
-    if (currentQuestionIndex >= currentQuizBatch.length - 1) { startQuiz(); } 
-    else { currentQuestionIndex++; renderQuestion(); }
+    if (currentQuestionIndex >= currentQuizBatch.length - 1) {
+        startQuiz();
+    } else {
+        currentQuestionIndex++;
+        renderQuestion();
+    }
 }
 
 // ==========================================
-// 新增：相機與 Gemini 原生 API 分析功能
+// 相機與 Gemini AI 分析（已修正）
 // ==========================================
 async function openCameraUI() {
     hideAllAreas();
     document.getElementById('camera-display').style.display = 'block';
     document.getElementById('ai-msg').innerText = "請將鏡頭對準口腔，按下拍照鈕進行分析。";
     document.getElementById('ai-result-box').style.display = 'none';
-    
+   
     document.getElementById('camera-container').style.display = 'block';
     document.getElementById('preview-container').style.display = 'none';
 
@@ -195,12 +225,12 @@ async function openCameraUI() {
 
     try {
         const video = document.getElementById('video-stream');
-        videoStream = await navigator.mediaDevices.getUserMedia({ 
-            video: { facingMode: 'environment' } 
+        videoStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'environment' }
         });
         video.srcObject = videoStream;
     } catch (err) {
-        alert("無法開啟相機，請確認設備權限。錯誤訊息: " + err.message);
+        alert("無法開啟相機，請確認設備權限。\n錯誤: " + err.message);
     }
 }
 
@@ -211,7 +241,6 @@ function stopCamera() {
     }
 }
 
-// 拍照功能
 function takePhoto() {
     const video = document.getElementById('video-stream');
     const canvas = document.getElementById('photo-canvas');
@@ -221,42 +250,41 @@ function takePhoto() {
     canvas.height = video.videoHeight;
     canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
     preview.src = dataUrl;
 
     document.getElementById('camera-container').style.display = 'none';
     document.getElementById('preview-container').style.display = 'block';
-    
-    stopCamera(); 
+   
+    stopCamera();
 }
 
 function retakePhoto() {
-    openCameraUI(); 
+    openCameraUI();
 }
 
-// 送出給 Gemini (使用不打架、不依賴套件的最穩固原生 POST 格式)
+// ====================【重點修正】====================
 async function submitToGemini() {
     const preview = document.getElementById('photo-preview');
     const resultBox = document.getElementById('ai-result-box');
-    
+   
     resultBox.style.display = 'block';
     resultBox.innerHTML = `
         <div style="text-align: center;">
             <div class="loading-spinner"></div><br>
-            ⏳ AI 助教正在透過安全通道解析照片，請稍候...
+            ⏳ AI 助教正在分析照片，請稍候...
         </div>
     `;
     toggleSpeak('loading', "正在為您分析照片，請稍候。");
 
-    // 取得 base64 字串
     const base64Image = preview.src.split(',')[1];
-    const promptText = "根據這個影像給予口腔清潔度建議";
 
-    // 原生官方標準多模態請求結構
     const requestData = {
         contents: [{
             parts: [
-                { text: promptText },
+                { 
+                    text: "這是一張長者口腔照片，請用溫暖親切的語氣，用繁體中文分析清潔狀況、可能問題，並給予實用改善建議。" 
+                },
                 {
                     inlineData: {
                         mimeType: "image/jpeg",
@@ -268,29 +296,36 @@ async function submitToGemini() {
     };
 
     try {
-        // 使用最相容的 v1beta 接口，直接發送原生 POST
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(requestData)
-        });
+        const response = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestData)
+            }
+        );
 
         const data = await response.json();
 
         if (!response.ok || data.error) {
-            const errMsg = data.error ? data.error.message : "HTTP 錯誤";
-            throw new Error(errMsg);
+            throw new Error(data.error?.message || `HTTP 錯誤 ${response.status}`);
         }
 
-        // 解析回覆文字
         const aiText = data.candidates[0].content.parts[0].text;
-        
-        resultBox.innerHTML = `<strong>🤖 AI 助教建議：</strong><br><br>${aiText.replace(/\n/g, '<br>')}`;
-        toggleSpeak('ai_result', aiText); 
+       
+        resultBox.innerHTML = `
+            <strong>🤖 AI 助教分析：</strong><br><br>
+            ${aiText.replace(/\n/g, '<br>')}
+        `;
+        toggleSpeak('ai_result', aiText);
 
     } catch (error) {
-        console.error("API 連線錯誤：", error);
-        resultBox.innerHTML = `❌ 分析失敗。<br><small style="color:red;">錯誤原因：${error.message}</small>`;
+        console.error("API 錯誤：", error);
+        resultBox.innerHTML = `
+            ❌ 分析失敗<br>
+            <small style="color:red;">錯誤原因：${error.message}</small><br>
+            <small>請確認網路連線或稍後再試。</small>
+        `;
         toggleSpeak('ai_error', "分析失敗，請稍後再試。");
     }
 }
