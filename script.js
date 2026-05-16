@@ -1,7 +1,7 @@
 // ==========================================
 // API 設定 (請填入您的 Gemini API Key)
 // ==========================================
-const GEMINI_API_KEY = "YOUR_GEMINI_API_KEY_HERE"; 
+const GEMINI_API_KEY = "AIzaSyAVWDWt5GdxyqXhj2p6izcWC0QbV6ke-jc"; 
 
 const interData = {
     tip: { title: "刷牙前重要提示", text: "● 餐後等待：吃完東西等20-30分鐘再刷。<br>● 時間：每次至少2分鐘，每天至少2次。<br>● 牙膏：用含氟牙膏，不需過度漱口。" },
