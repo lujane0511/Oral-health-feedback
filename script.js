@@ -1,7 +1,7 @@
 // ==========================================
 // API 設定 (已填入您的 AI Studio 滿血版金鑰)
 // ==========================================
-const GEMINI_API_KEY = "AQ.Ab8RN6LOiB8NJxCMZLhPmxPFUwM3GWOxlmT5eNcM0ykGpWX7YQ"; 
+const GEMINI_API_KEY = "AIzaSyDOMLfds9bdvS3BBEHGTxW0lDCDI-Rz7wg"; 
 
 const interData = {
     tip: { title: "刷牙前重要提示", text: "● 餐後等待：吃完東西等20-30分鐘再刷。<br>● 時間：每次至少2分鐘，每天至少2次。<br>● 牙膏：用含氟牙膏，不需過度漱口。" },
