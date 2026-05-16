@@ -4,46 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI 口腔衛教協作工具 - 完全整合版</title>
-    <style>
-        :root { --primary: #0066CC; --success: #28a745; --warning: #ffc107; --danger: #dc3545; --bg: #f4f7f9; }
-        body { font-family: "Microsoft JhengHei", sans-serif; background-color: var(--bg); margin: 0; padding: 15px; }
-        .container { max-width: 800px; margin: auto; background: white; padding: 25px; border-radius: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
-        h1 { color: var(--primary); text-align: center; font-size: 2.2rem; }
-        .ai-status { background: #eef6ff; padding: 20px; border-radius: 20px; margin-bottom: 20px; border-left: 10px solid var(--primary); font-size: 1.5rem; color: #333; line-height: 1.8; }
-        
-        /* 快捷功能按鈕 */
-        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
-        .main-btn { padding: 20px 10px; font-size: 1.4rem; border-radius: 15px; border: none; cursor: pointer; color: white; font-weight: bold; transition: 0.3s; }
-        .btn-tip { background-color: #6c757d; }
-        .btn-brush { background-color: var(--primary); }
-        .btn-denture { background-color: var(--success); }
-        .btn-floss { background-color: #fd7e14; }
-        /* 新增測驗按鈕樣式 */
-        .btn-quiz { background-color: #6f42c1; grid-column: span 2; margin-top: 10px; }
-
-        /* 顯示區塊 */
-        .display-area { display: none; margin-top: 20px; padding: 20px; background: #fffdf5; border: 3px dashed var(--warning); border-radius: 20px; font-size: 1.5rem; }
-        .video-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 15px; margin-bottom: 15px; }
-        .video-container iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
-
-        /* 測驗區塊專屬樣式 */
-        .quiz-area { display: none; margin-top: 20px; padding: 25px; background: #f8f9fa; border: 3px solid #6f42c1; border-radius: 20px; }
-        .quiz-title { font-size: 1.6rem; color: #333; font-weight: bold; margin-bottom: 20px; line-height: 1.5; }
-        .option-btn { display: block; width: 100%; text-align: left; margin: 10px 0; padding: 15px; font-size: 1.3rem; border: 2px solid #ddd; border-radius: 10px; background: white; cursor: pointer; transition: 0.2s; }
-        .option-btn:hover:not(:disabled) { background: #eef6ff; border-color: var(--primary); }
-        .option-btn.correct { background: var(--success); color: white; border-color: var(--success); }
-        .option-btn.wrong { background: var(--danger); color: white; border-color: var(--danger); }
-        .option-btn:disabled { cursor: not-allowed; }
-        .feedback-box { margin-top: 20px; padding: 15px; border-radius: 10px; font-size: 1.4rem; font-weight: bold; display: none; text-align: center; }
-        .next-btn { display: block; width: 100%; margin-top: 20px; padding: 15px; font-size: 1.4rem; background: var(--primary); color: white; border: none; border-radius: 15px; cursor: pointer; display: none; }
-
-        /* 下方專業知識庫 */
-        .section-box { border: 1px solid #ddd; border-radius: 15px; margin-bottom: 10px; overflow: hidden; background: #fff; }
-        .section-header { background: #f8f9fa; padding: 15px; font-size: 1.4rem; font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; }
-        .section-content { padding: 15px; font-size: 1.3rem; display: none; line-height: 1.6; }
-        .point { margin-bottom: 10px; padding-left: 12px; border-left: 4px solid var(--primary); }
-        .point strong { color: var(--primary); display: block; }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
@@ -58,11 +19,15 @@
         <button class="main-btn btn-brush" onclick="playBrushVideo()">🪥 貝氏刷牙法</button>
         <button class="main-btn btn-denture" onclick="showInteractive('denture')">🦷 假牙清潔教學</button>
         <button class="main-btn btn-floss" onclick="showInteractive('floss')">🧵 牙線棒使用</button>
-        <button class="main-btn btn-quiz" onclick="startQuiz()">📝 進行口腔衛教測驗 (隨機5題)</button>
+        <button class="main-btn btn-quiz" onclick="startQuiz()">📝 進行口腔衛教測驗</button>
+        <!-- 新增：相機功能按鈕 -->
+        <button class="main-btn btn-camera" onclick="openCameraUI()">📷 口腔快照分析</button>
     </div>
 
+    <!-- 原有：互動教學區 -->
     <div id="interactive-display" class="display-area"></div>
 
+    <!-- 原有：測驗區 -->
     <div id="quiz-display" class="quiz-area">
         <div class="quiz-title" id="q-title">正在載入題庫...</div>
         <div id="q-options"></div>
@@ -70,8 +35,33 @@
         <button class="next-btn" id="q-next" onclick="nextQuestion()">下一題 ➡️</button>
     </div>
 
+    <!-- 新增：相機與 AI 分析區 -->
+    <div id="camera-display" class="display-area">
+        <h3 class="camera-title">📷 口腔清潔度 AI 分析</h3>
+        
+        <!-- 影像串流區 -->
+        <div id="camera-container">
+            <video id="video-stream" autoplay playsinline></video>
+            <button onclick="takePhoto()" class="camera-btn btn-capture">📸 拍下口腔照片</button>
+        </div>
+
+        <!-- 預覽與送出區 -->
+        <div id="preview-container" style="display:none;">
+            <canvas id="photo-canvas" style="display:none;"></canvas>
+            <img id="photo-preview" alt="口腔照片預覽" />
+            <div class="btn-grid" style="margin-top: 15px; margin-bottom: 0;">
+                <button onclick="retakePhoto()" class="camera-btn btn-retake">🔄 重新拍照</button>
+                <button onclick="submitToGemini()" class="camera-btn btn-submit">🚀 送出給 AI 分析</button>
+            </div>
+        </div>
+
+        <!-- AI 回覆顯示區 -->
+        <div class="feedback-box ai-response-box" id="ai-result-box"></div>
+    </div>
+
     <hr>
 
+    <!-- 原有：知識庫區塊 -->
     <div class="section-box">
         <div class="section-header" onclick="toggleSection('s1')">1. 常見口腔問題與病因 <span>▼</span></div>
         <div id="s1" class="section-content">
@@ -81,7 +71,6 @@
             <div class="point"><strong>功能退化</strong> 咀嚼吞嚥下降可能導致營養不良。</div>
         </div>
     </div>
-
     <div class="section-box">
         <div class="section-header" onclick="toggleSection('s2')">2. 日常照護重點 <span>▼</span></div>
         <div id="s2" class="section-content">
@@ -91,7 +80,6 @@
             <div class="point"><strong>飲食注意</strong> 避免辛辣過燙，補充維生素B群與胡蘿蔔素。</div>
         </div>
     </div>
-
     <div class="section-box">
         <div class="section-header" onclick="toggleSection('s3')">3. 預防與就醫提醒 <span>▼</span></div>
         <div id="s3" class="section-content">
@@ -102,227 +90,6 @@
     </div>
 </div>
 
-<script>
-    const interData = {
-        tip: {
-            title: "刷牙前重要提示",
-            text: "● 餐後等待：吃完東西等20-30分鐘再刷。<br>● 時間：每次至少2分鐘，每天至少2次。<br>● 牙膏：用含氟牙膏，不需過度漱口。"
-        },
-        denture: {
-            title: "假牙清潔步驟",
-            text: "● 餐後清潔：用餐後取下，用專用軟刷與清水刷洗。<br>● 忌用牙膏：避免研磨劑刮傷假牙。<br>● 定期浸泡：每2-3天用清潔錠泡5-15分鐘。<br>● 照護牙齦：沒真牙也要刷牙齦和上顎。"
-        },
-        floss: {
-            title: "牙線棒使用教學",
-            text: "● 輕柔滑入：左右移動慢慢滑進牙縫。<br>● C字型刮牙：緊貼牙齒面成C字，上下滑動。<br>● 分段清理：清完1-2個縫就沖洗或換新。"
-        }
-    };
-
-    let currentSpeakingId = null;
-
-    function toggleSpeak(id, txt) {
-        if (currentSpeakingId === id && window.speechSynthesis.speaking) {
-            window.speechSynthesis.cancel();
-            currentSpeakingId = null;
-            return;
-        }
-        window.speechSynthesis.cancel();
-        const cleanTxt = txt.replace(/<br>/g, '、').replace(/●/g, ''); 
-        const s = new SpeechSynthesisUtterance(cleanTxt);
-        s.lang = 'zh-TW'; 
-        s.rate = 0.85;
-        s.onend = function() { if (currentSpeakingId === id) { currentSpeakingId = null; } };
-        window.speechSynthesis.speak(s);
-        currentSpeakingId = id;
-    }
-
-    function toggleSection(id) {
-        const el = document.getElementById(id);
-        const isVisible = el.style.display === 'block';
-        if (isVisible) {
-            el.style.display = 'none';
-            window.speechSynthesis.cancel();
-            currentSpeakingId = null;
-        } else {
-            document.querySelectorAll('.section-content').forEach(s => s.style.display = 'none');
-            el.style.display = 'block';
-            toggleSpeak(id, el.innerText);
-        }
-    }
-
-    function showInteractive(key) {
-        document.getElementById('quiz-display').style.display = 'none'; // 隱藏測驗區
-        const area = document.getElementById('interactive-display');
-        area.style.display = 'block';
-        area.innerHTML = `<h3>${interData[key].title}</h3><p>${interData[key].text}</p>`;
-        document.getElementById('ai-msg').innerText = "助教正在說明：" + interData[key].title;
-        const txtToSpeak = interData[key].title + "。" + interData[key].text;
-        toggleSpeak(key, txtToSpeak);
-    }
-
-    function playBrushVideo() {
-        document.getElementById('quiz-display').style.display = 'none'; // 隱藏測驗區
-        const area = document.getElementById('interactive-display');
-        const ai = document.getElementById('ai-msg');
-        area.style.display = 'block';
-        area.innerHTML = `
-            <h3>🪥 貝氏刷牙法示範影片</h3>
-            <div class="video-container">
-                <iframe src="https://www.youtube.com/embed/m1g4c0JhGBM?autoplay=1" frameborder="0" allowfullscreen></iframe>
-            </div>
-            <p>請看影片，牙刷斜斜45度，跟著老師一起刷，每個地方刷10秒喔！</p>
-        `;
-        ai.innerText = "助教導引中：貝氏刷牙示範";
-        const txtToSpeak = "那我們開始學習貝氏刷牙法囉！請看著影片跟著老師一起刷，每個地方都要刷乾淨喔。";
-        toggleSpeak('video', txtToSpeak);
-    }
-
-    // ==========================================
-    // 新增：測驗系統功能
-    // ==========================================
-    let allQuestions = []; // 儲存從 txt 解析出來的所有題目
-    let currentQuizBatch = []; // 本次抽出的 5 題
-    let currentQuestionIndex = 0; // 目前第幾題
-
-    async function startQuiz() {
-        window.speechSynthesis.cancel(); // 停止先前的語音
-        currentSpeakingId = null;
-
-        document.getElementById('interactive-display').style.display = 'none'; // 隱藏教學區
-        document.getElementById('quiz-display').style.display = 'block'; // 顯示測驗區
-        document.getElementById('ai-msg').innerText = "小測驗時間！讓我們來看看記得了多少吧！";
-        
-        toggleSpeak('quiz_intro', "小測驗時間！讓我們來看看記得了多少吧！");
-
-        // 如果還沒讀取過題庫，就去 fetch test.txt
-        if (allQuestions.length === 0) {
-            try {
-                const response = await fetch('test.txt');
-                const text = await response.text();
-                parseQuestions(text);
-            } catch (error) {
-                document.getElementById('q-title').innerHTML = "無法讀取題庫！<br><small style='color:red;'>注意：此功能需上傳至 GitHub Pages 或使用本機 Server 才能運作。</small>";
-                return;
-            }
-        }
-
-        // 隨機挑選 5 題
-        let shuffled = allQuestions.sort(() => 0.5 - Math.random());
-        currentQuizBatch = shuffled.slice(0, 5);
-        currentQuestionIndex = 0;
-        
-        renderQuestion();
-    }
-
-    // 解析 txt 檔案的內容為陣列
-    function parseQuestions(text) {
-        allQuestions = [];
-        const lines = text.split('\n').map(l => l.trim()).filter(l => l !== '');
-        let i = 0;
-        while (i < lines.length) {
-            if (lines[i].match(/^\d+\./)) { // 如果這行開頭是數字加點 (例如 "1.")
-                let qText = lines[i].substring(lines[i].indexOf('.') + 1).trim(); // 拿掉題號
-                let options = [lines[i+1], lines[i+2], lines[i+3], lines[i+4]];
-                let ansLine = lines[i+5] || "";
-                let ansMatch = ansLine.match(/[A-D]/); // 抓取 "答案：C" 裡面的英文字母
-                
-                if (ansMatch && options.length === 4) {
-                    allQuestions.push({
-                        question: qText,
-                        options: options,
-                        correctOptionLetter: ansMatch[0] // A, B, C 或 D
-                    });
-                }
-                i += 6; // 跳到下一題
-            } else {
-                i++;
-            }
-        }
-    }
-
-    function renderQuestion() {
-        const qData = currentQuizBatch[currentQuestionIndex];
-        const titleEl = document.getElementById('q-title');
-        const optionsEl = document.getElementById('q-options');
-        const feedbackEl = document.getElementById('q-feedback');
-        const nextBtn = document.getElementById('q-next');
-
-        // 重置畫面
-        feedbackEl.style.display = 'none';
-        nextBtn.style.display = 'none';
-        optionsEl.innerHTML = '';
-
-        // 顯示題目 (加上題號 1/5)
-        titleEl.innerText = `第 ${currentQuestionIndex + 1} 題 (共5題)：\n${qData.question}`;
-        
-        // 唸出題目
-        toggleSpeak('q_' + currentQuestionIndex, `第 ${currentQuestionIndex + 1} 題：${qData.question}`);
-
-        // 產生選項按鈕
-        qData.options.forEach((optText, index) => {
-            const letter = String.fromCharCode(65 + index); // A, B, C, D
-            const btn = document.createElement('button');
-            btn.className = 'option-btn';
-            btn.innerText = optText;
-            btn.onclick = () => checkAnswer(btn, letter, qData.correctOptionLetter, qData.options);
-            optionsEl.appendChild(btn);
-        });
-    }
-
-    function checkAnswer(selectedBtn, selectedLetter, correctLetter, allOptionsText) {
-        window.speechSynthesis.cancel(); // 按下選項就停止題目語音
-        
-        const allBtns = document.querySelectorAll('.option-btn');
-        const feedbackEl = document.getElementById('q-feedback');
-        const nextBtn = document.getElementById('q-next');
-
-        // 鎖定所有按鈕，不讓長輩亂點第二次
-        allBtns.forEach(btn => btn.disabled = true);
-
-        // 找出正確解答的文字，方便顯示
-        const correctIndex = correctLetter.charCodeAt(0) - 65;
-        const correctFullText = allOptionsText[correctIndex];
-
-        let feedbackText = "";
-
-        if (selectedLetter === correctLetter) {
-            selectedBtn.classList.add('correct');
-            feedbackEl.style.background = '#d4edda';
-            feedbackEl.style.color = '#155724';
-            feedbackText = "🎉 答題正確！非常棒！";
-            feedbackEl.innerHTML = feedbackText;
-        } else {
-            selectedBtn.classList.add('wrong');
-            // 把正確選項也標示出來
-            allBtns[correctIndex].classList.add('correct');
-            feedbackEl.style.background = '#f8d7da';
-            feedbackEl.style.color = '#721c24';
-            feedbackText = "❌ 答錯了喔！<br>正確答案是：<br>" + correctFullText;
-            feedbackEl.innerHTML = feedbackText;
-        }
-
-        feedbackEl.style.display = 'block';
-        toggleSpeak('feedback', feedbackText.replace(/<br>/g, '')); // 唸出解答回饋
-
-        // 如果是最後一題，按鈕文字改變
-        if (currentQuestionIndex >= currentQuizBatch.length - 1) {
-            nextBtn.innerText = "🔄 測驗結束，重新測驗";
-        } else {
-            nextBtn.innerText = "下一題 ➡️";
-        }
-        nextBtn.style.display = 'block';
-    }
-
-    function nextQuestion() {
-        if (currentQuestionIndex >= currentQuizBatch.length - 1) {
-            // 測驗結束，重啟測驗
-            startQuiz();
-        } else {
-            currentQuestionIndex++;
-            renderQuestion();
-        }
-    }
-</script>
-
+<script src="script.js"></script>
 </body>
 </html>
