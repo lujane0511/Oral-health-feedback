@@ -1,3 +1,4 @@
+console.log("✅ script.js 已成功載入！");
 // ====================【使用 Cloudflare Proxy - 已安全】====================
 async function submitToGemini() {
     const preview = document.getElementById('photo-preview');
