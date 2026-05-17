@@ -19,17 +19,40 @@ let videoStream = null;
 // 語音功能
 // ==========================================
 function toggleSpeak(id, txt) {
+    const btn = document.getElementById('speak-btn-' + id);
+
+    // 如果目前正在朗讀，且點擊的是同一個按鈕，則停止朗讀
     if (currentSpeakingId === id && window.speechSynthesis.speaking) {
         window.speechSynthesis.cancel();
         currentSpeakingId = null;
+        if (btn) btn.classList.remove('speaking'); // 移除閃爍動畫
         return;
     }
+    
+    // 否則，先停止所有正在進行的語音
     window.speechSynthesis.cancel();
+    
+    // 移除畫面上所有朗讀按鈕的動畫狀態
+    document.querySelectorAll('.speak-btn').forEach(b => b.classList.remove('speaking'));
+
     const cleanTxt = txt.replace(/<br>/g, '、').replace(/●/g, '');
     const s = new SpeechSynthesisUtterance(cleanTxt);
     s.lang = 'zh-TW';
     s.rate = 0.85;
-    s.onend = () => { if (currentSpeakingId === id) currentSpeakingId = null; };
+    
+    // 當開始朗讀時，加上按鈕特效
+    s.onstart = () => {
+        if (btn) btn.classList.add('speaking');
+    };
+
+    // 當朗讀結束時，清除按鈕特效與狀態
+    s.onend = () => { 
+        if (currentSpeakingId === id) {
+            currentSpeakingId = null; 
+            if (btn) btn.classList.remove('speaking');
+        }
+    };
+    
     window.speechSynthesis.speak(s);
     currentSpeakingId = id;
 }
@@ -51,8 +74,26 @@ function showInteractive(key) {
     hideAllAreas();
     const area = document.getElementById('interactive-display');
     area.style.display = 'block';
-    area.innerHTML = `<h3>${interData[key].title}</h3><p>${interData[key].text}</p>`;
-    toggleSpeak(key, interData[key].title + "。" + interData[key].text);
+    area.removeAttribute('data-current'); // 確保與影片狀態區隔
+
+    // 切換頁面時，自動停止任何尚未結束的語音
+    window.speechSynthesis.cancel();
+    currentSpeakingId = null;
+
+    const title = interData[key].title;
+    const text = interData[key].text;
+    const speakText = title + "。" + text;
+
+    // 將內容改為包含一個獨立的朗讀按鈕，排版參考影片區塊的做法
+    area.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3 style="margin: 0; color: var(--primary);">${title}</h3>
+            <button id="speak-btn-${key}" class="speak-btn" title="朗讀 / 停止" onclick="toggleSpeak('${key}', '${speakText}')">🔊</button>
+        </div>
+        <p>${text}</p>
+    `;
+    
+    // 這裡我們把原本的自動執行 toggleSpeak() 刪掉了，所以不會自動出聲！
 }
 
 function playBrushVideo() {
