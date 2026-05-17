@@ -330,22 +330,28 @@ async function submitToGemini() {
     const base64Image = preview.src.split(',')[1];
 
     // ==========================================
-    // 【重點修改】動態讀取 PromptWords.txt
+    // 動態讀取 PromptWords.txt
     // ==========================================
     let promptText = "這是一張長者口腔照片，請用溫暖親切、鼓勵的語氣，用繁體中文詳細分析清潔狀況、可能問題，並給予簡單實用的改善建議。"; // 如果讀取失敗的預設備用文字
 
     try {
-        // 從伺服器 (或 Github Pages) 動態獲取 PromptWords.txt 的內容
+        // 從伺服器動態獲取 PromptWords.txt 的內容
         const promptResponse = await fetch('PromptWords.txt');
         if (promptResponse.ok) {
             promptText = await promptResponse.text();
-            console.log("✅ 成功讀取 PromptWords.txt 作為 AI 提示詞");
+            console.log("✅ 成功讀取 PromptWords.txt 檔案！");
         } else {
-            console.warn("⚠️ 無法讀取 PromptWords.txt (可能路徑錯誤)，使用預設提示詞");
+            console.warn("⚠️ 無法讀取 PromptWords.txt (可能路徑錯誤或未部署在伺服器上)，使用預設提示詞");
         }
     } catch (error) {
         console.warn("⚠️ 發生網路錯誤，無法讀取 PromptWords.txt，使用預設提示詞", error);
     }
+
+    // 【新增】在 F12 Console 印出最終要送給 AI 的提示詞內容，讓你確認！
+    console.log("🚀 準備發送給 AI 的提示詞（Prompt）內容如下：");
+    console.log("--------------------------------------------------");
+    console.log(promptText);
+    console.log("--------------------------------------------------");
 
     // 將讀取到的提示詞 (promptText) 放進發送給 AI 的資料中
     const requestData = {
