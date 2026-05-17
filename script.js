@@ -3,7 +3,7 @@ console.log("✅ script.js 已成功載入！");
 // ==========================================
 // API 設定
 // ==========================================
-const GEMINI_API_KEY = "你的新Key";   // 如果還沒換成新的，請先換
+//const GEMINI_API_KEY = "你的新Key";   // 如果還沒換成新的，請先換
 
 // 互動內容資料
 const interData = {
@@ -14,9 +14,10 @@ const interData = {
 
 let currentSpeakingId = null;
 let videoStream = null;
-// 記錄目前是前鏡頭還是後鏡頭，以及當前的影像軌道
-let currentFacingMode = 'environment'; // 預設為後鏡頭
+// 【修改】將預設鏡頭改為前鏡頭 (user)
+let currentFacingMode = 'user'; 
 let videoTrack = null;
+
 // ==========================================
 // 語音功能
 // ==========================================
@@ -191,10 +192,14 @@ async function openCameraUI(isSwitchingCamera = false) {
         });
         video.srcObject = videoStream;
         
-        // 【修正】確保視訊畫面始終呈「鏡像」顯示（像照鏡子一樣），以便使用者正確引導刷牙動作。
-        // 這樣舉右手時影像右手動，符合使用者習慣。
-        video.style.transform = 'scaleX(-1)';
-        video.style.webkitTransform = 'scaleX(-1)'; // 支援 Safari
+        // 確保視訊畫面：前鏡頭鏡像顯示，後鏡頭正常顯示
+        if (currentFacingMode === 'user') {
+            video.style.transform = 'scaleX(-1)';
+            video.style.webkitTransform = 'scaleX(-1)'; // 支援 Safari
+        } else {
+            video.style.transform = 'scaleX(1)';
+            video.style.webkitTransform = 'scaleX(1)'; // 支援 Safari
+        }
 
         // 取得影像軌道，用來控制曝光
         videoTrack = videoStream.getVideoTracks()[0];
@@ -269,9 +274,6 @@ async function checkExposureSupport() {
         } else {
             console.log("抱歉，當前鏡頭或瀏覽器不支援網頁調整曝光。");
             wrapper.style.display = 'none'; // 不支援的話，自動隱藏
-            
-            // 如果你想讓長輩知道為什麼沒看到亮度條，可以加上這行（選用）：
-            // alert("您目前使用的鏡頭不支援手動調整亮度喔！");
         }
     } catch (err) {
         console.log("讀取相機設定失敗：", err);
@@ -309,9 +311,14 @@ function takePhoto() {
 
     preview.src = canvas.toDataURL('image/jpeg', 0.85);
 
-    // 【修正】確保預覽照片也呈現CSS「鏡像」，與視訊畫面視覺一致，不讓長輩困惑。
-    preview.style.transform = 'scaleX(-1)';
-    preview.style.webkitTransform = 'scaleX(-1)'; // 支援 Safari
+    // 【修正】確保預覽照片的翻轉狀態與當下的鏡頭方向完全一致
+    if (currentFacingMode === 'user') {
+        preview.style.transform = 'scaleX(-1)';
+        preview.style.webkitTransform = 'scaleX(-1)'; 
+    } else {
+        preview.style.transform = 'scaleX(1)';
+        preview.style.webkitTransform = 'scaleX(1)'; 
+    }
 
     document.getElementById('camera-container').style.display = 'none';
     document.getElementById('preview-container').style.display = 'block';
@@ -334,7 +341,7 @@ async function submitToGemini() {
     resultBox.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
             <strong style="color: var(--primary);">⏳ AI 助教正在分析...</strong>
-            <button id="speak-btn-loading" class="speak-btn" title="朗隔 / 停止" onclick="toggleSpeak('loading', '${loadingText}')">🔇</button>
+            <button id="speak-btn-loading" class="speak-btn" title="朗讀 / 停止" onclick="toggleSpeak('loading', '${loadingText}')">🔇</button>
         </div>
         <div style="text-align: center; padding: 20px;">
             <div class="loading-spinner"></div><br>
