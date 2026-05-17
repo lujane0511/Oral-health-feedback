@@ -4,17 +4,17 @@ console.log("✅ script.js 已成功載入！");
 // 1. 資料與全域變數
 // ==========================================
 const interData = {
-    tip: { 
-        title: "刷牙前重要提示", 
-        text: "● 餐後等待：吃完東西等20-30分鐘再刷。<br>● 時間：每次至少2分鐘，每天至少2次。<br>● 牙膏：用含氟牙膏，不需過度漱口。" 
+    tip: {
+        title: "刷牙前重要提示",
+        text: "● 餐後等待：吃完東西等20-30分鐘再刷。\n● 時間：每次至少2分鐘，每天至少2次。\n● 牙膏：用含氟牙膏，不需過度漱口。"
     },
-    denture: { 
-        title: "假牙清潔步驟", 
-        text: "● 餐後清潔：用餐後取下，用專用軟刷與清水刷洗。<br>● 忌用牙膏：避免研磨劑刮傷假牙。<br>● 定期浸泡：每2-3天用清潔錠泡5-15分鐘。<br>● 照護牙齦：沒真牙也要刷牙齦和上顎。" 
+    denture: {
+        title: "假牙清潔步驟",
+        text: "● 餐後清潔：用餐後取下，用專用軟刷與清水刷洗。\n● 忌用牙膏：避免研磨劑刮傷假牙。\n● 定期浸泡：每2-3天用清潔錠泡5-15分鐘。\n● 照護牙齦：沒真牙也要刷牙齦和上顎。"
     },
-    floss: { 
-        title: "牙線棒使用教學", 
-        text: "● 輕柔滑入：左右移動慢慢滑進牙縫。<br>● C字型刮牙：緊貼牙齒面成C字，上下滑動。<br>● 分段清理：清完1-2個縫就沖洗或換新。" 
+    floss: {
+        title: "牙線棒使用教學",
+        text: "● 輕柔滑入：左右移動慢慢滑進牙縫。\n● C字型刮牙：緊貼牙齒面成C字，上下滑動。\n● 分段清理：清完1-2個縫就沖洗或換新。"
     }
 };
 
@@ -36,19 +36,21 @@ function toggleSpeak(id, txt) {
         updateSpeakButton(id, false);
         return;
     }
-
+    
     window.speechSynthesis.cancel();
-    const cleanTxt = txt.replace(/<br>/g, '、').replace(/●/g, '');
+    // 清除換行與標點符號，讓語音更流暢
+    const cleanTxt = txt.replace(/\n/g, '、').replace(/●/g, '');
     const utterance = new SpeechSynthesisUtterance(cleanTxt);
     utterance.lang = 'zh-TW';
     utterance.rate = 0.85;
+    
     utterance.onend = () => {
         if (currentSpeakingId === id) {
             currentSpeakingId = null;
             updateSpeakButton(id, false);
         }
     };
-
+    
     window.speechSynthesis.speak(utterance);
     currentSpeakingId = id;
     updateSpeakButton(id, true);
@@ -59,6 +61,13 @@ function updateSpeakButton(id, isSpeaking) {
     if (btn) {
         btn.innerHTML = isSpeaking ? '🔊' : '🔇';
         btn.title = isSpeaking ? '停止朗讀' : '開始朗讀';
+        
+        // 核心修正：動態切換 CSS 呼吸燈與美化樣式
+        if (isSpeaking) {
+            btn.classList.add('speaking');
+        } else {
+            btn.classList.remove('speaking');
+        }
     }
 }
 
@@ -76,54 +85,51 @@ function hideAllAreas() {
 }
 
 // ==========================================
-// 4. 互動內容（只顯示，不自動朗讀）
+// 4. 互動內容（點擊只顯示，不自動朗讀）
 // ==========================================
 function showInteractive(key) {
     const area = document.getElementById('interactive-display');
-    
     if (area.style.display === 'block' && area.getAttribute('data-current') === key) {
         hideAllAreas();
         return;
     }
-    
     hideAllAreas();
     area.style.display = 'block';
     area.setAttribute('data-current', key);
     
+    // 核心修正：加入 class="speak-btn" 連結 CSS 樣式，並修正引號與傳參
+    const textForSpeak = interData[key].text.replace(/"/g, '&quot;');
     area.innerHTML = `
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-            <h3>${interData[key].title}</h3>
-            <button id="speak-btn-${key}" class="speak-btn" 
-                    onclick="toggleSpeak('${key}', '${interData[key].title}。${interData[key].text.replace(/<br>/g, ' ')}')" 
-                    title="開始朗讀">🔇</button>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3 style="margin: 0; color: var(--primary);">${interData[key].title}</h3>
+            <button id="speak-btn-${key}" class="speak-btn" title="開始朗讀" onclick="toggleSpeak('${key}', '${textForSpeak}')">🔇</button>
         </div>
-        <p>${interData[key].text}</p>
+        <div style="white-space: pre-line; line-height: 1.8;">${interData[key].text}</div>
     `;
 }
 
 function playBrushVideo() {
     const area = document.getElementById('interactive-display');
-    
     if (area.style.display === 'block' && area.getAttribute('data-current') === 'video') {
         hideAllAreas();
         return;
     }
-    
     hideAllAreas();
     area.style.display = 'block';
     area.setAttribute('data-current', 'video');
     
+    const videoIntro = "請看影片，跟著老師一起刷，每個地方刷10秒喔！";
+    
+    // 核心修正：加入 class="speak-btn" 連結 CSS 樣式
     area.innerHTML = `
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-            <h3>🪥 貝氏刷牙法示範影片</h3>
-            <button id="speak-btn-video" class="speak-btn" 
-                    onclick="toggleSpeak('video', '那我們開始學習貝氏刷牙法囉！請看著影片跟著老師一起刷，每個地方都要刷乾淨喔。')" 
-                    title="開始朗讀">🔇</button>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3 style="margin: 0; color: var(--primary);">🪥 貝氏刷牙法示範影片</h3>
+            <button id="speak-btn-video" class="speak-btn" title="開始朗讀" onclick="toggleSpeak('video', '${videoIntro}')">🔇</button>
         </div>
         <div class="video-container">
-            <iframe src="https://www.youtube.com/embed/m1g4c0JhGBM?autoplay=1" frameborder="0" allowfullscreen></iframe>
+            <iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ" frameborder="0" allowfullscreen></iframe>
         </div>
-        <p>請看影片，跟著老師一起刷，每個地方刷10秒喔！</p>
+        <p style="margin-top: 10px; font-weight: bold;">${videoIntro}</p>
     `;
 }
 
@@ -139,7 +145,7 @@ async function startQuiz() {
     hideAllAreas();
     quizArea.style.display = 'block';
     document.getElementById('ai-msg').innerText = "小測驗時間！讓我們來看看你記住了多少吧！";
-
+    
     if (allQuestions.length === 0) {
         try {
             const response = await fetch('test.txt');
@@ -150,15 +156,14 @@ async function startQuiz() {
             return;
         }
     }
-
+    
     let shuffled = [...allQuestions].sort(() => Math.random() - 0.5);
     currentQuizBatch = shuffled.slice(0, 10);
     currentQuestionIndex = 0;
     renderQuestion();
 }
 
-// （以下保持你原本的測驗函式）
-function parseQuestions(text) { /* ... 你原本的內容 ... */ 
+function parseQuestions(text) {
     allQuestions = [];
     const lines = text.split('\n').map(l => l.trim()).filter(l => l);
     let i = 0;
@@ -182,13 +187,15 @@ function parseQuestions(text) { /* ... 你原本的內容 ... */
     console.log(`✅ 已載入 ${allQuestions.length} 題`);
 }
 
-function renderQuestion() { /* ... 你原本的內容 ... */ 
+function renderQuestion() {
     const q = currentQuizBatch[currentQuestionIndex];
     document.getElementById('q-feedback').style.display = 'none';
     document.getElementById('q-next').style.display = 'none';
     document.getElementById('q-title').innerText = `第 ${currentQuestionIndex + 1} 題 / ${currentQuizBatch.length} 題\n${q.question}`;
+    
     const optionsEl = document.getElementById('q-options');
     optionsEl.innerHTML = '';
+    
     q.options.forEach((opt, index) => {
         const letter = String.fromCharCode(65 + index);
         const btn = document.createElement('button');
@@ -199,14 +206,15 @@ function renderQuestion() { /* ... 你原本的內容 ... */
     });
 }
 
-function checkAnswer(selectedBtn, selectedLetter, correctLetter, allOptions) { /* ... 你原本的內容 ... */ 
+function checkAnswer(selectedBtn, selectedLetter, correctLetter, allOptions) {
     window.speechSynthesis.cancel();
     const allBtns = document.querySelectorAll('.option-btn');
     allBtns.forEach(btn => btn.disabled = true);
+    
     const feedbackEl = document.getElementById('q-feedback');
     const nextBtn = document.getElementById('q-next');
     const correctIndex = correctLetter.charCodeAt(0) - 65;
-
+    
     if (selectedLetter === correctLetter) {
         selectedBtn.classList.add('correct');
         feedbackEl.style.background = '#d4edda';
@@ -219,6 +227,7 @@ function checkAnswer(selectedBtn, selectedLetter, correctLetter, allOptions) { /
         feedbackEl.style.color = '#721c24';
         feedbackEl.innerHTML = `❌ 答錯了<br>正確答案是：${allOptions[correctIndex]}`;
     }
+    
     feedbackEl.style.display = 'block';
     nextBtn.innerText = (currentQuestionIndex >= currentQuizBatch.length - 1) ? "🔄 重新測驗" : "下一題 ➡️";
     nextBtn.style.display = 'block';
@@ -248,6 +257,7 @@ async function openCameraUI() {
     document.getElementById('ai-result-box').style.display = 'none';
     document.getElementById('camera-container').style.display = 'block';
     document.getElementById('preview-container').style.display = 'none';
+    
     try {
         const video = document.getElementById('video-stream');
         videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
@@ -268,9 +278,11 @@ function takePhoto() {
     const video = document.getElementById('video-stream');
     const canvas = document.getElementById('photo-canvas');
     const preview = document.getElementById('photo-preview');
+    
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     canvas.getContext('2d').drawImage(video, 0, 0);
+    
     preview.src = canvas.toDataURL('image/jpeg', 0.85);
     document.getElementById('camera-container').style.display = 'none';
     document.getElementById('preview-container').style.display = 'block';
@@ -285,13 +297,14 @@ async function submitToGemini() {
     const preview = document.getElementById('photo-preview');
     const resultBox = document.getElementById('ai-result-box');
     resultBox.style.display = 'block';
+    
     resultBox.innerHTML = `
         <div style="text-align: center; padding: 20px;">
-            <div class="loading-spinner"></div><br>
-            ⏳ AI 助教正在分析您的口腔照片，請稍候...
+            <div class="loading-spinner"></div>
+            <div>⏳ AI 助教正在分析您的口腔照片，請稍候...</div>
         </div>
     `;
-
+    
     const base64Image = preview.src.split(',')[1];
     const requestData = {
         contents: [{
@@ -301,7 +314,7 @@ async function submitToGemini() {
             ]
         }]
     };
-
+    
     try {
         const proxyUrl = "https://withered-boat-fb8a.lujane0511.workers.dev/v1beta/models/gemini-2.5-flash:generateContent";
         const response = await fetch(proxyUrl, {
@@ -309,18 +322,17 @@ async function submitToGemini() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(requestData)
         });
-
+        
         const data = await response.json();
-
         if (!response.ok || data.error) {
             throw new Error(data.error?.message || `HTTP 錯誤 ${response.status}`);
         }
-
+        
         const aiText = data.candidates[0].content.parts[0].text;
+        // 將換行符號轉成 HTML 換行
         resultBox.innerHTML = `<strong>🤖 AI 助教分析：</strong><br><br>${aiText.replace(/\n/g, '<br>')}`;
-
     } catch (error) {
         console.error("分析錯誤：", error);
-        resultBox.innerHTML = `❌ 分析失敗<br><small style="color:red;">${error.message}</small>`;
+        resultBox.innerHTML = `<span style="color: var(--danger);">❌ 分析失敗：${error.message}</span>`;
     }
 }
