@@ -30,6 +30,7 @@ let currentQuestionIndex = 0;
 // 2. 語音功能
 // ==========================================
 function toggleSpeak(id, txt) {
+    // 如果點擊的是正在朗讀的按鈕，就停止
     if (currentSpeakingId === id && window.speechSynthesis.speaking) {
         window.speechSynthesis.cancel();
         currentSpeakingId = null;
@@ -37,7 +38,14 @@ function toggleSpeak(id, txt) {
         return;
     }
     
-    window.speechSynthesis.cancel();
+    // 先停止其他正在播放的語音
+    if (window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+        if (currentSpeakingId) {
+            updateSpeakButton(currentSpeakingId, false);
+        }
+    }
+    
     // 清除換行與標點符號，讓語音更流暢
     const cleanTxt = txt.replace(/\n/g, '、').replace(/●/g, '');
     const utterance = new SpeechSynthesisUtterance(cleanTxt);
@@ -45,15 +53,18 @@ function toggleSpeak(id, txt) {
     utterance.rate = 0.85;
     
     utterance.onend = () => {
-        if (currentSpeakingId === id) {
-            currentSpeakingId = null;
-            updateSpeakButton(id, false);
-        }
+        currentSpeakingId = null;
+        updateSpeakButton(id, false);
+    };
+
+    utterance.onerror = () => {
+        currentSpeakingId = null;
+        updateSpeakButton(id, false);
     };
     
-    window.speechSynthesis.speak(utterance);
     currentSpeakingId = id;
     updateSpeakButton(id, true);
+    window.speechSynthesis.speak(utterance);
 }
 
 function updateSpeakButton(id, isSpeaking) {
@@ -62,7 +73,7 @@ function updateSpeakButton(id, isSpeaking) {
         btn.innerHTML = isSpeaking ? '🔊' : '🔇';
         btn.title = isSpeaking ? '停止朗讀' : '開始朗讀';
         
-        // 核心修正：動態切換 CSS 呼吸燈與美化樣式
+        // 動態切換 CSS 呼吸燈與美化樣式
         if (isSpeaking) {
             btn.classList.add('speaking');
         } else {
@@ -81,7 +92,25 @@ function hideAllAreas() {
     document.getElementById('interactive-display').removeAttribute('data-current');
     stopCamera();
     window.speechSynthesis.cancel();
+    if (currentSpeakingId) {
+        updateSpeakButton(currentSpeakingId, false);
+    }
     currentSpeakingId = null;
+}
+
+// 補上底部知識庫摺疊面板功能
+function toggleSection(id) {
+    const content = document.getElementById(id);
+    const header = content.previousElementSibling;
+    const arrow = header.querySelector('span');
+    
+    if (content.style.display === 'block') {
+        content.style.display = 'none';
+        arrow.innerText = '▼';
+    } else {
+        content.style.display = 'block';
+        arrow.innerText = '▲';
+    }
 }
 
 // ==========================================
@@ -97,11 +126,13 @@ function showInteractive(key) {
     area.style.display = 'block';
     area.setAttribute('data-current', key);
     
-    // 核心修正：加入 class="speak-btn" 連結 CSS 樣式，並修正引號與傳參
-    const textForSpeak = interData[key].text.replace(/"/g, '&quot;');
+    // 安全處理字串，避免單雙引號讓 HTML onclick 壞掉
+    const textForSpeak = interData[key].text.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    
+    // 渲染畫面：此時只會出現 🔇 按鈕，點擊後才會觸發 toggleSpeak
     area.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <h3 style="margin: 0; color: var(--primary);">${interData[key].title}</h3>
+            <h3 style="margin: 0; color: var(--primary); font-size: 1.6rem;">${interData[key].title}</h3>
             <button id="speak-btn-${key}" class="speak-btn" title="開始朗讀" onclick="toggleSpeak('${key}', '${textForSpeak}')">🔇</button>
         </div>
         <div style="white-space: pre-line; line-height: 1.8;">${interData[key].text}</div>
@@ -120,10 +151,9 @@ function playBrushVideo() {
     
     const videoIntro = "請看影片，跟著老師一起刷，每個地方刷10秒喔！";
     
-    // 核心修正：加入 class="speak-btn" 連結 CSS 樣式
     area.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <h3 style="margin: 0; color: var(--primary);">🪥 貝氏刷牙法示範影片</h3>
+            <h3 style="margin: 0; color: var(--primary); font-size: 1.6rem;">🪥 貝氏刷牙法示範影片</h3>
             <button id="speak-btn-video" class="speak-btn" title="開始朗讀" onclick="toggleSpeak('video', '${videoIntro}')">🔇</button>
         </div>
         <div class="video-container">
@@ -329,7 +359,6 @@ async function submitToGemini() {
         }
         
         const aiText = data.candidates[0].content.parts[0].text;
-        // 將換行符號轉成 HTML 換行
         resultBox.innerHTML = `<strong>🤖 AI 助教分析：</strong><br><br>${aiText.replace(/\n/g, '<br>')}`;
     } catch (error) {
         console.error("分析錯誤：", error);
