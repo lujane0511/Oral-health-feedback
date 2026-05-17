@@ -3,7 +3,7 @@ console.log("✅ script.js 已成功載入！");
 // ==========================================
 // API 設定
 // ==========================================
-const GEMINI_API_KEY = "你的新Key";   // 如果還沒換成新的，請先換
+// const GEMINI_API_KEY = "你的新Key";   // 如果還沒換成新的，請先換
 
 // 互動內容資料
 const interData = {
@@ -14,22 +14,60 @@ const interData = {
 
 let currentSpeakingId = null;
 let videoStream = null;
+// 將預設鏡頭改為前鏡頭 (user)
+let currentFacingMode = 'user'; 
+let videoTrack = null;
 
 // ==========================================
 // 語音功能
 // ==========================================
 function toggleSpeak(id, txt) {
+    const btn = document.getElementById('speak-btn-' + id);
+
+    // 如果目前正在朗讀，且點擊的是同一個按鈕，則停止朗讀
     if (currentSpeakingId === id && window.speechSynthesis.speaking) {
         window.speechSynthesis.cancel();
         currentSpeakingId = null;
+        if (btn) {
+            btn.classList.remove('speaking'); // 移除閃爍動畫
+            btn.innerText = '🔇'; // 切換回靜音圖示
+        }
         return;
     }
+    
+    // 否則，先停止所有正在進行的語音
     window.speechSynthesis.cancel();
+    
+    // 移除畫面上所有朗讀按鈕的動畫狀態，並統一恢復為靜音圖示
+    document.querySelectorAll('.speak-btn').forEach(b => {
+        b.classList.remove('speaking');
+        b.innerText = '🔇';
+    });
+
     const cleanTxt = txt.replace(/<br>/g, '、').replace(/●/g, '');
     const s = new SpeechSynthesisUtterance(cleanTxt);
     s.lang = 'zh-TW';
     s.rate = 0.85;
-    s.onend = () => { if (currentSpeakingId === id) currentSpeakingId = null; };
+    
+    // 當開始朗讀時，加上按鈕特效並切換為朗讀圖示
+    s.onstart = () => {
+        if (btn) {
+            btn.classList.add('speaking');
+            btn.innerText = '🔊';
+        }
+    };
+
+    // 當朗讀結束時，清除按鈕特效與狀態，並恢復為靜音圖示
+    s.onend = () => { 
+        if (currentSpeakingId === id) {
+            currentSpeakingId = null; 
+            if (btn) {
+                btn.classList.remove('speaking');
+                btn.innerText = '🔇';
+            }
+        }
+    };
+    
     window.speechSynthesis.speak(s);
     currentSpeakingId = id;
 }
@@ -41,6 +79,18 @@ function hideAllAreas() {
     document.getElementById('interactive-display').style.display = 'none';
     document.getElementById('quiz-display').style.display = 'none';
     document.getElementById('camera-display').style.display = 'none';
+    
+    // 關閉功能時，恢復最上方的預設歡迎詞
+    document.getElementById('ai-msg').innerHTML = "阿公阿嬤早安！我是口腔小管家。<br>今天我們要一起守護牙齒喔！請點選下方功能：";
+    
+    // 切換畫面時確保語音停止並重置按鈕狀態
+    window.speechSynthesis.cancel();
+    currentSpeakingId = null;
+    document.querySelectorAll('.speak-btn').forEach(b => {
+        b.classList.remove('speaking');
+        b.innerText = '🔇';
+    });
+
     stopCamera();
 }
 
@@ -48,49 +98,177 @@ function hideAllAreas() {
 // 互動功能
 // ==========================================
 function showInteractive(key) {
-    hideAllAreas();
     const area = document.getElementById('interactive-display');
+
+    // 檢查是否已經開啟這個區塊，如果已經開啟，再按一次主選單按鈕就會關閉
+    if (area.style.display === 'block' && area.getAttribute('data-current') === key) {
+        hideAllAreas();
+        return;
+    }
+
+    // 如果還沒開啟，就先隱藏所有畫面，然後顯示這一個
+    hideAllAreas();
     area.style.display = 'block';
-    area.innerHTML = `<h3>${interData[key].title}</h3><p>${interData[key].text}</p>`;
-    toggleSpeak(key, interData[key].title + "。" + interData[key].text);
+    area.setAttribute('data-current', key); 
+
+    const title = interData[key].title;
+    const text = interData[key].text;
+    const speakText = title + "。" + text;
+
+    // 預設為 🔇
+    area.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3 style="margin: 0; color: var(--primary);">${title}</h3>
+            <button id="speak-btn-${key}" class="speak-btn" title="朗讀 / 停止" onclick="toggleSpeak('${key}', '${speakText}')">🔇</button>
+        </div>
+        <p>${text}</p>
+    `;
 }
 
 function playBrushVideo() {
-    hideAllAreas();
     const area = document.getElementById('interactive-display');
+    if (area.style.display === 'block' && area.getAttribute('data-current') === 'video') {
+        hideAllAreas();
+        return;
+    }
+    hideAllAreas();
     area.style.display = 'block';
+    area.setAttribute('data-current', 'video');
+    
+    const videoIntro = "請看影片，跟著老師一起刷，每個地方刷10秒喔！";
+    
+    // 預設為 🔇
     area.innerHTML = `
-        <h3>🪥 貝氏刷牙法示範影片</h3>
-        <div class="video-container">
-            <iframe src="https://www.youtube.com/embed/m1g4c0JhGBM?autoplay=1" frameborder="0" allowfullscreen></iframe>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3 style="margin: 0; color: var(--primary);">🪥 貝氏刷牙法示範影片</h3>
+            <button id="speak-btn-video" class="speak-btn" title="開始朗讀" onclick="toggleSpeak('video', '${videoIntro}')">🔇</button>
         </div>
-        <p>請看影片，跟著老師一起刷，每個地方刷10秒喔！</p>
+        <div class="video-container">
+            <iframe src="https://www.youtube.com/embed/m1g4c0JhGBM" frameborder="0" allowfullscreen></iframe>
+        </div>
+        <p style="margin-top: 10px; font-weight: bold;">${videoIntro}</p>
     `;
-    toggleSpeak('video', "那我們開始學習貝氏刷牙法囉！");
 }
 
 // ==========================================
-// 相機與 AI 分析功能（重點）
+// 相機與 AI 分析功能
 // ==========================================
-async function openCameraUI() {
-    hideAllAreas();
-    document.getElementById('camera-display').style.display = 'block';
-    document.getElementById('ai-msg').innerText = "請將鏡頭對準口腔，按下拍照鈕進行分析。";
-    document.getElementById('ai-result-box').style.display = 'none';
+async function openCameraUI(isSwitchingCamera = false) {
+    const area = document.getElementById('camera-display');
 
-    document.getElementById('camera-container').style.display = 'block';
-    document.getElementById('preview-container').style.display = 'none';
+    if (!isSwitchingCamera) {
+        if (area.style.display === 'block') {
+            hideAllAreas();
+            return;
+        }
+        hideAllAreas();
+        area.style.display = 'block';
+        document.getElementById('ai-result-box').style.display = 'none';
+        document.getElementById('camera-container').style.display = 'block';
+        document.getElementById('preview-container').style.display = 'none';
 
-    toggleSpeak('camera_intro', "請將鏡頭對準口腔，拍好照片後送出，讓我為您分析清潔狀況。");
+        window.speechSynthesis.cancel();
+        currentSpeakingId = null;
+
+        const introText = "請將鏡頭對準口腔，拍好照片後送出，讓我為您分析清潔狀況。";
+        document.getElementById('ai-msg').innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span>📷 ${introText}</span>
+                <button id="speak-btn-camera" class="speak-btn" title="朗讀 / 停止" onclick="toggleSpeak('camera', '${introText}')">🔇</button>
+            </div>
+        `;
+    }
+
+    stopCamera();
 
     try {
         const video = document.getElementById('video-stream');
         videoStream = await navigator.mediaDevices.getUserMedia({ 
-            video: { facingMode: 'environment' } 
+            video: { facingMode: currentFacingMode } 
         });
         video.srcObject = videoStream;
+        
+        // 確保視訊畫面：前鏡頭鏡像顯示，後鏡頭正常顯示
+        if (currentFacingMode === 'user') {
+            video.style.transform = 'scaleX(-1)';
+            video.style.webkitTransform = 'scaleX(-1)'; 
+        } else {
+            video.style.transform = 'scaleX(1)';
+            video.style.webkitTransform = 'scaleX(1)'; 
+        }
+
+        videoTrack = videoStream.getVideoTracks()[0];
+        injectCameraControls();
+
+        setTimeout(() => {
+            checkExposureSupport();
+        }, 1000);
+
     } catch (err) {
         alert("無法開啟相機，請確認權限。\n錯誤: " + err.message);
+    }
+}
+
+function injectCameraControls() {
+    if (document.getElementById('camera-controls-wrapper')) return;
+
+    const controls = document.createElement('div');
+    controls.id = 'camera-controls-wrapper';
+    controls.style = "display: flex; justify-content: space-between; align-items: stretch; margin-top: 15px; margin-bottom: 5px;";
+    
+    controls.innerHTML = `
+        <button onclick="switchCamera()" class="camera-btn" style="width: 48%; background-color: #6c757d; margin-top: 0; padding: 10px; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; gap: 5px;">
+            🔄 翻轉鏡頭
+        </button>
+        <div id="exposure-wrapper" style="width: 48%; background: #f8f9fa; border: 2px solid #ddd; border-radius: 15px; padding: 0 10px; display: none; align-items: center; justify-content: center; gap: 5px; box-sizing: border-box;">
+            <span style="font-size: 1.2rem;">☀️</span>
+            <input type="range" id="exposure-slider" oninput="changeExposure(this.value)" style="width: 100%; cursor: pointer;">
+        </div>
+    `;
+    
+    const videoElement = document.getElementById('video-stream');
+    videoElement.parentNode.insertBefore(controls, videoElement.nextSibling);
+}
+
+function switchCamera() {
+    currentFacingMode = (currentFacingMode === 'environment') ? 'user' : 'environment';
+    openCameraUI(true); 
+}
+
+async function checkExposureSupport() {
+    if (!videoTrack) {
+        console.log("找不到影像軌道，無法檢查曝光功能。");
+        return;
+    }
+    
+    try {
+        const capabilities = videoTrack.getCapabilities();
+        const settings = videoTrack.getSettings();
+        const wrapper = document.getElementById('exposure-wrapper');
+        const slider = document.getElementById('exposure-slider');
+
+        if (capabilities.exposureCompensation) {
+            wrapper.style.display = 'flex'; 
+            slider.min = capabilities.exposureCompensation.min;
+            slider.max = capabilities.exposureCompensation.max;
+            slider.step = capabilities.exposureCompensation.step;
+            slider.value = settings.exposureCompensation || 0;
+        } else {
+            wrapper.style.display = 'none'; 
+        }
+    } catch (err) {
+        console.log("讀取相機設定失敗：", err);
+    }
+}
+
+async function changeExposure(value) {
+    if (!videoTrack) return;
+    try {
+        await videoTrack.applyConstraints({
+            advanced: [{ exposureMode: 'manual', exposureCompensation: parseFloat(value) }]
+        });
+    } catch (err) {
+        console.log("設定亮度失敗", err);
     }
 }
 
@@ -111,6 +289,15 @@ function takePhoto() {
     canvas.getContext('2d').drawImage(video, 0, 0);
 
     preview.src = canvas.toDataURL('image/jpeg', 0.85);
+
+    if (currentFacingMode === 'user') {
+        preview.style.transform = 'scaleX(-1)';
+        preview.style.webkitTransform = 'scaleX(-1)'; 
+    } else {
+        preview.style.transform = 'scaleX(1)';
+        preview.style.webkitTransform = 'scaleX(1)'; 
+    }
+
     document.getElementById('camera-container').style.display = 'none';
     document.getElementById('preview-container').style.display = 'block';
     stopCamera();
@@ -124,23 +311,53 @@ function retakePhoto() {
 async function submitToGemini() {
     const preview = document.getElementById('photo-preview');
     const resultBox = document.getElementById('ai-result-box');
-   
+    
     resultBox.style.display = 'block';
+    
+    const loadingText = "正在為您分析照片，請稍候。";
+    // 預設為 🔇
     resultBox.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <strong style="color: var(--primary);">⏳ AI 助教正在分析...</strong>
+            <button id="speak-btn-loading" class="speak-btn" title="朗讀 / 停止" onclick="toggleSpeak('loading', '${loadingText}')">🔇</button>
+        </div>
         <div style="text-align: center; padding: 20px;">
             <div class="loading-spinner"></div><br>
-            ⏳ AI 助教正在分析您的口腔照片，請稍候...
+            ${loadingText}
         </div>
     `;
 
-    toggleSpeak('loading', "正在為您分析照片，請稍候。");
-
     const base64Image = preview.src.split(',')[1];
 
+    // ==========================================
+    // 動態讀取 PromptWords.txt
+    // ==========================================
+    let promptText = "這是一張長者口腔照片，請用溫暖親切、鼓勵的語氣，用繁體中文詳細分析清潔狀況、可能問題，並給予簡單實用的改善建議。"; // 如果讀取失敗的預設備用文字
+
+    try {
+        // 從伺服器動態獲取 PromptWords.txt 的內容
+        const promptResponse = await fetch('PromptWords.txt');
+        if (promptResponse.ok) {
+            promptText = await promptResponse.text();
+            console.log("✅ 成功讀取 PromptWords.txt 檔案！");
+        } else {
+            console.warn("⚠️ 無法讀取 PromptWords.txt (可能路徑錯誤或未部署在伺服器上)，使用預設提示詞");
+        }
+    } catch (error) {
+        console.warn("⚠️ 發生網路錯誤，無法讀取 PromptWords.txt，使用預設提示詞", error);
+    }
+
+    // 【新增】在 F12 Console 印出最終要送給 AI 的提示詞內容，讓你確認！
+    console.log("🚀 準備發送給 AI 的提示詞（Prompt）內容如下：");
+    console.log("--------------------------------------------------");
+    console.log(promptText);
+    console.log("--------------------------------------------------");
+
+    // 將讀取到的提示詞 (promptText) 放進發送給 AI 的資料中
     const requestData = {
         contents: [{
             parts: [
-                { text: "這是一張長者口腔照片，請用溫暖親切、鼓勵的語氣，用繁體中文詳細分析清潔狀況、可能問題，並給予簡單實用的改善建議。" },
+                { text: promptText },
                 { inlineData: { mimeType: "image/jpeg", data: base64Image } }
             ]
         }]
@@ -163,11 +380,124 @@ async function submitToGemini() {
 
         const aiText = data.candidates[0].content.parts[0].text;
         
-        resultBox.innerHTML = `<strong>🤖 AI 助教分析：</strong><br><br>${aiText.replace(/\n/g, '<br>')}`;
-        toggleSpeak('ai_result', aiText);
+        // 預設為 🔇
+        resultBox.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <strong style="font-size: 1.2rem; color: var(--primary);">🤖 AI 助教分析結果：</strong>
+                <button id="speak-btn-ai" class="speak-btn" title="朗讀 / 停止">🔇</button>
+            </div>
+            <div style="line-height: 1.6;">${aiText.replace(/\n/g, '<br>')}</div>
+        `;
+        
+        document.getElementById('speak-btn-ai').onclick = () => toggleSpeak('ai', aiText);
 
     } catch (error) {
         console.error("分析錯誤：", error);
         resultBox.innerHTML = `❌ 分析失敗<br><small style="color:red;">${error.message}</small>`;
+    }
+}
+
+// ==========================================
+// 測驗功能 (Quiz)
+// ==========================================
+const quizData = [
+    { q: "刷牙的最佳時機是？", options: ["吃完東西立刻刷", "餐後等待20-30分鐘", "只有睡前需要刷"], ans: 1 },
+    { q: "假牙可以使用一般牙膏刷洗嗎？", options: ["可以，這樣才乾淨", "不可以，會刮傷假牙", "看心情決定"], ans: 1 },
+    { q: "牙線棒正確的使用方式是？", options: ["用力壓入牙縫", "緊貼牙齒面成C字型上下滑動", "隨便剔一剔就好"], ans: 1 }
+];
+
+let currentQIndex = 0;
+
+function startQuiz() {
+    const area = document.getElementById('quiz-display');
+
+    if (area.style.display === 'block') {
+        hideAllAreas();
+        return;
+    }
+
+    hideAllAreas();
+    area.style.display = 'block';
+    currentQIndex = 0;
+    
+    showQuestion();
+}
+
+function showQuestion() {
+    const qObj = quizData[currentQIndex];
+    const qTitle = document.getElementById('q-title');
+    const qOptions = document.getElementById('q-options');
+    const qFeedback = document.getElementById('q-feedback');
+    const qNext = document.getElementById('q-next');
+
+    qFeedback.style.display = 'none';
+    qNext.style.display = 'none';
+
+    let speakText = "題目：" + qObj.q + "。選項有：";
+    qObj.options.forEach((opt, i) => { 
+        speakText += `第${i+1}個，${opt}。`; 
+    });
+
+    // 預設為 🔇
+    qTitle.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span>第 ${currentQIndex + 1} 題：${qObj.q}</span>
+            <button id="speak-btn-quiz" class="speak-btn" title="朗讀 / 停止" onclick="toggleSpeak('quiz', '${speakText}')">🔇</button>
+        </div>
+    `;
+
+    qOptions.innerHTML = '';
+    qObj.options.forEach((opt, index) => {
+        const btn = document.createElement('button');
+        btn.className = 'option-btn';
+        btn.innerText = opt;
+        btn.onclick = () => checkAnswer(index, btn);
+        qOptions.appendChild(btn);
+    });
+}
+
+function checkAnswer(selectedIndex, btnElement) {
+    const qObj = quizData[currentQIndex];
+    const qFeedback = document.getElementById('q-feedback');
+    const qNext = document.getElementById('q-next');
+    const allOptions = document.querySelectorAll('.option-btn');
+
+    // 點擊選項時，自動停止正在念的題目語音並恢復靜音圖示
+    window.speechSynthesis.cancel();
+    currentSpeakingId = null;
+    document.querySelectorAll('.speak-btn').forEach(b => {
+        b.classList.remove('speaking');
+        b.innerText = '🔇';
+    });
+
+    allOptions.forEach(btn => btn.disabled = true);
+
+    if (selectedIndex === qObj.ans) {
+        btnElement.classList.add('correct');
+        qFeedback.innerHTML = "✅ 答對了！非常棒！";
+        qFeedback.style.color = "var(--success)";
+    } else {
+        btnElement.classList.add('wrong');
+        allOptions[qObj.ans].classList.add('correct');
+        qFeedback.innerHTML = "❌ 答錯了喔，正確答案是：" + qObj.options[qObj.ans];
+        qFeedback.style.color = "var(--danger)";
+    }
+
+    qFeedback.style.display = 'block';
+    
+    if (currentQIndex < quizData.length - 1) {
+        qNext.innerText = "下一題 ➡️";
+    } else {
+        qNext.innerText = "測驗完成！點擊收起";
+    }
+    qNext.style.display = 'block';
+}
+
+function nextQuestion() {
+    if (currentQIndex < quizData.length - 1) {
+        currentQIndex++;
+        showQuestion();
+    } else {
+        hideAllAreas();
     }
 }
