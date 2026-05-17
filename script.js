@@ -131,18 +131,40 @@ function playBrushVideo() {
 }
 
 // ==========================================
-// 相機與 AI 分析功能（重點）
+// 相機與 AI 分析功能
 // ==========================================
 async function openCameraUI() {
+    const area = document.getElementById('camera-display');
+
+    // 【新增】再按一次按鈕即關閉畫面與語音
+    if (area.style.display === 'block') {
+        hideAllAreas();
+        window.speechSynthesis.cancel();
+        currentSpeakingId = null;
+        return;
+    }
+
     hideAllAreas();
-    document.getElementById('camera-display').style.display = 'block';
+    area.style.display = 'block';
     document.getElementById('ai-msg').innerText = "請將鏡頭對準口腔，按下拍照鈕進行分析。";
     document.getElementById('ai-result-box').style.display = 'none';
 
     document.getElementById('camera-container').style.display = 'block';
     document.getElementById('preview-container').style.display = 'none';
 
-    toggleSpeak('camera_intro', "請將鏡頭對準口腔，拍好照片後送出，讓我為您分析清潔狀況。");
+    // 關閉先前的語音，不自動播放
+    window.speechSynthesis.cancel();
+    currentSpeakingId = null;
+
+    // 動態將朗讀按鈕加入相機區塊的標題
+    const titleEl = document.querySelector('.camera-title');
+    const introText = "請將鏡頭對準口腔，拍好照片後送出，讓我為您分析清潔狀況。";
+    titleEl.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span>📷 口腔清潔度 AI 分析</span>
+            <button id="speak-btn-camera" class="speak-btn" title="朗讀 / 停止" onclick="toggleSpeak('camera', '${introText}')">🔊</button>
+        </div>
+    `;
 
     try {
         const video = document.getElementById('video-stream');
@@ -185,16 +207,15 @@ function retakePhoto() {
 async function submitToGemini() {
     const preview = document.getElementById('photo-preview');
     const resultBox = document.getElementById('ai-result-box');
-   
+    
     resultBox.style.display = 'block';
+    // 移除讀取時的自動語音
     resultBox.innerHTML = `
         <div style="text-align: center; padding: 20px;">
             <div class="loading-spinner"></div><br>
             ⏳ AI 助教正在分析您的口腔照片，請稍候...
         </div>
     `;
-
-    toggleSpeak('loading', "正在為您分析照片，請稍候。");
 
     const base64Image = preview.src.split(',')[1];
 
@@ -224,11 +245,129 @@ async function submitToGemini() {
 
         const aiText = data.candidates[0].content.parts[0].text;
         
-        resultBox.innerHTML = `<strong>🤖 AI 助教分析：</strong><br><br>${aiText.replace(/\n/g, '<br>')}`;
-        toggleSpeak('ai_result', aiText);
+        // 渲染結果並加上專屬的 AI 朗讀按鈕
+        resultBox.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <strong style="font-size: 1.2rem;">🤖 AI 助教分析：</strong>
+                <button id="speak-btn-ai" class="speak-btn" title="朗讀 / 停止">🔊</button>
+            </div>
+            <div>${aiText.replace(/\n/g, '<br>')}</div>
+        `;
+        
+        // 為了避免 AI 產生的文字裡有引號破壞 HTML，使用 onClick 綁定事件
+        document.getElementById('speak-btn-ai').onclick = () => toggleSpeak('ai', aiText);
 
     } catch (error) {
         console.error("分析錯誤：", error);
         resultBox.innerHTML = `❌ 分析失敗<br><small style="color:red;">${error.message}</small>`;
+    }
+}
+
+// ==========================================
+// 測驗功能 (Quiz)
+// ==========================================
+const quizData = [
+    { q: "刷牙的最佳時機是？", options: ["吃完東西立刻刷", "餐後等待20-30分鐘", "只有睡前需要刷"], ans: 1 },
+    { q: "假牙可以使用一般牙膏刷洗嗎？", options: ["可以，這樣才乾淨", "不可以，會刮傷假牙", "看心情決定"], ans: 1 },
+    { q: "牙線棒正確的使用方式是？", options: ["用力壓入牙縫", "緊貼牙齒面成C字型上下滑動", "隨便剔一剔就好"], ans: 1 }
+];
+
+let currentQIndex = 0;
+
+function startQuiz() {
+    const area = document.getElementById('quiz-display');
+
+    // 【新增】再按一次按鈕即關閉畫面與語音
+    if (area.style.display === 'block') {
+        hideAllAreas();
+        window.speechSynthesis.cancel();
+        currentSpeakingId = null;
+        return;
+    }
+
+    hideAllAreas();
+    area.style.display = 'block';
+    currentQIndex = 0;
+    
+    // 關閉語音，不自動播放
+    window.speechSynthesis.cancel();
+    currentSpeakingId = null;
+    
+    showQuestion();
+}
+
+function showQuestion() {
+    const qObj = quizData[currentQIndex];
+    const qTitle = document.getElementById('q-title');
+    const qOptions = document.getElementById('q-options');
+    const qFeedback = document.getElementById('q-feedback');
+    const qNext = document.getElementById('q-next');
+
+    qFeedback.style.display = 'none';
+    qNext.style.display = 'none';
+
+    // 組合要朗讀的文字：包含題目和選項
+    let speakText = "題目：" + qObj.q + "。選項有：";
+    qObj.options.forEach((opt, i) => { 
+        speakText += `第${i+1}個，${opt}。`; 
+    });
+
+    // 渲染題目，並在右側加入朗讀按鈕
+    qTitle.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span>第 ${currentQIndex + 1} 題：${qObj.q}</span>
+            <button id="speak-btn-quiz" class="speak-btn" title="朗讀 / 停止" onclick="toggleSpeak('quiz', '${speakText}')">🔊</button>
+        </div>
+    `;
+
+    qOptions.innerHTML = '';
+    qObj.options.forEach((opt, index) => {
+        const btn = document.createElement('button');
+        btn.className = 'option-btn';
+        btn.innerText = opt;
+        btn.onclick = () => checkAnswer(index, btn);
+        qOptions.appendChild(btn);
+    });
+}
+
+function checkAnswer(selectedIndex, btnElement) {
+    const qObj = quizData[currentQIndex];
+    const qFeedback = document.getElementById('q-feedback');
+    const qNext = document.getElementById('q-next');
+    const allOptions = document.querySelectorAll('.option-btn');
+
+    // 停止語音
+    window.speechSynthesis.cancel();
+    currentSpeakingId = null;
+
+    allOptions.forEach(btn => btn.disabled = true);
+
+    if (selectedIndex === qObj.ans) {
+        btnElement.classList.add('correct');
+        qFeedback.innerHTML = "✅ 答對了！非常棒！";
+        qFeedback.style.color = "var(--success)";
+    } else {
+        btnElement.classList.add('wrong');
+        allOptions[qObj.ans].classList.add('correct');
+        qFeedback.innerHTML = "❌ 答錯了喔，正確答案是：" + qObj.options[qObj.ans];
+        qFeedback.style.color = "var(--danger)";
+    }
+
+    qFeedback.style.display = 'block';
+    
+    if (currentQIndex < quizData.length - 1) {
+        qNext.innerText = "下一題 ➡️";
+    } else {
+        qNext.innerText = "測驗完成！點擊收起";
+    }
+    qNext.style.display = 'block';
+}
+
+function nextQuestion() {
+    if (currentQIndex < quizData.length - 1) {
+        currentQIndex++;
+        showQuestion();
+    } else {
+        hideAllAreas();
     }
 }
