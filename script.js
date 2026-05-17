@@ -14,7 +14,7 @@ const interData = {
 
 let currentSpeakingId = null;
 let videoStream = null;
-// 【新增】記錄目前是前鏡頭還是後鏡頭，以及當前的影像軌道
+// 記錄目前是前鏡頭還是後鏡頭，以及當前的影像軌道
 let currentFacingMode = 'environment'; // 預設為後鏡頭
 let videoTrack = null;
 // ==========================================
@@ -191,6 +191,16 @@ async function openCameraUI(isSwitchingCamera = false) {
         });
         video.srcObject = videoStream;
         
+        // 【新增】修正水平反轉問題。
+        // 後鏡頭(environment)不需要反轉 (scaleX(1))，前鏡頭(user)通常需要像鏡子一樣反轉 (scaleX(-1))
+        if (currentFacingMode === 'user') {
+            video.style.transform = 'scaleX(-1)';
+            video.style.webkitTransform = 'scaleX(-1)'; // 支援 Safari
+        } else {
+            video.style.transform = 'scaleX(1)';
+            video.style.webkitTransform = 'scaleX(1)'; // 支援 Safari
+        }
+
         // 取得影像軌道，用來控制曝光
         videoTrack = videoStream.getVideoTracks()[0];
 
@@ -299,6 +309,7 @@ function takePhoto() {
 
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
+    // 拍照時直接從影片源繪製，Raw Stream 通常不會反轉，所以這裡不需要額外處理反轉問題
     canvas.getContext('2d').drawImage(video, 0, 0);
 
     preview.src = canvas.toDataURL('image/jpeg', 0.85);
