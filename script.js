@@ -1,206 +1,49 @@
-console.log("✅ script.js 已成功載入！");
+:root { --primary: #0066CC; --success: #28a745; --warning: #ffc107; --danger: #dc3545; --bg: #f4f7f9; }
+body { font-family: "Microsoft JhengHei", sans-serif; background-color: var(--bg); margin: 0; padding: 15px; }
+.container { max-width: 800px; margin: auto; background: white; padding: 25px; border-radius: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+h1 { color: var(--primary); text-align: center; font-size: 2.2rem; }
+.ai-status { background: #eef6ff; padding: 20px; border-radius: 20px; margin-bottom: 20px; border-left: 10px solid var(--primary); font-size: 1.5rem; color: #333; line-height: 1.8; }
 
-// ==========================================
-// 1. 資料與全域變數
-// ==========================================
-const interData = {
-    tip: { title: "刷牙前重要提示", text: "● 餐後等待：吃完東西等20-30分鐘再刷。<br>● 時間：每次至少2分鐘，每天至少2次。<br>● 牙膏：用含氟牙膏，不需過度漱口。" },
-    denture: { title: "假牙清潔步驟", text: "● 餐後清潔：用餐後取下，用專用軟刷與清水刷洗。<br>● 忌用牙膏：避免研磨劑刮傷假牙。<br>● 定期浸泡：每2-3天用清潔錠泡5-15分鐘。<br>● 照護牙齦：沒真牙也要刷牙齦和上顎。" },
-    floss: { title: "牙線棒使用教學", text: "● 輕柔滑入：左右移動慢慢滑進牙縫。<br>● C字型刮牙：緊貼牙齒面成C字，上下滑動。<br>● 分段清理：清完1-2個縫就沖洗或換新。" }
-};
+/* 快捷功能按鈕 */
+.btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+.main-btn { padding: 20px 10px; font-size: 1.4rem; border-radius: 15px; border: none; cursor: pointer; color: white; font-weight: bold; transition: 0.3s; }
+.btn-tip { background-color: #6c757d; }
+.btn-brush { background-color: var(--primary); }
+.btn-denture { background-color: var(--success); }
+.btn-floss { background-color: #fd7e14; }
+.btn-quiz { background-color: #6f42c1; grid-column: span 2; margin-top: 10px; }
+.btn-camera { background-color: #17a2b8; grid-column: span 2; } /* 新增相機按鈕顏色 */
 
-let currentSpeakingId = null;
-let videoStream = null;
+/* 顯示區塊 */
+.display-area { display: none; margin-top: 20px; padding: 20px; background: #fffdf5; border: 3px dashed var(--warning); border-radius: 20px; font-size: 1.5rem; }
+.video-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 15px; margin-bottom: 15px; }
+.video-container iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
 
-// 測驗系統變數
-let allQuestions = [];
-let currentQuizBatch = [];
-let currentQuestionIndex = 0;
+/* 測驗區塊專屬樣式 */
+.quiz-area { display: none; margin-top: 20px; padding: 25px; background: #f8f9fa; border: 3px solid #6f42c1; border-radius: 20px; }
+.quiz-title { font-size: 1.6rem; color: #333; font-weight: bold; margin-bottom: 20px; line-height: 1.5; }
+.option-btn { display: block; width: 100%; text-align: left; margin: 10px 0; padding: 15px; font-size: 1.3rem; border: 2px solid #ddd; border-radius: 10px; background: white; cursor: pointer; transition: 0.2s; }
+.option-btn:hover:not(:disabled) { background: #eef6ff; border-color: var(--primary); }
+.option-btn.correct { background: var(--success); color: white; border-color: var(--success); }
+.option-btn.wrong { background: var(--danger); color: white; border-color: var(--danger); }
+.option-btn:disabled { cursor: not-allowed; }
+.feedback-box { margin-top: 20px; padding: 15px; border-radius: 10px; font-size: 1.4rem; font-weight: bold; display: none; text-align: center; }
+.next-btn { display: block; width: 100%; margin-top: 20px; padding: 15px; font-size: 1.4rem; background: var(--primary); color: white; border: none; border-radius: 15px; cursor: pointer; display: none; }
 
-// ==========================================
-// 2. 語音功能
-// ==========================================
-function toggleSpeak(id, txt) {
-    if (currentSpeakingId === id && window.speechSynthesis.speaking) {
-        window.speechSynthesis.cancel();
-        currentSpeakingId = null;
-        return;
-    }
-    window.speechSynthesis.cancel();
-    const cleanTxt = txt.replace(/<br>/g, '、').replace(/●/g, '');
-    const utterance = new SpeechSynthesisUtterance(cleanTxt);
-    utterance.lang = 'zh-TW';
-    utterance.rate = 0.85;
-    utterance.onend = () => { if (currentSpeakingId === id) currentSpeakingId = null; };
-    window.speechSynthesis.speak(utterance);
-    currentSpeakingId = id;
-}
+/* 下方專業知識庫 */
+.section-box { border: 1px solid #ddd; border-radius: 15px; margin-bottom: 10px; overflow: hidden; background: #fff; }
+.section-header { background: #f8f9fa; padding: 15px; font-size: 1.4rem; font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; }
+.section-content { padding: 15px; font-size: 1.3rem; display: none; line-height: 1.6; }
+.point { margin-bottom: 10px; padding-left: 12px; border-left: 4px solid var(--primary); }
+.point strong { color: var(--primary); display: block; }
 
-// ==========================================
-// 3. 畫面切換控制
-// ==========================================
-function hideAllAreas() {
-    document.getElementById('interactive-display').style.display = 'none';
-    document.getElementById('quiz-display').style.display = 'none';
-    document.getElementById('camera-display').style.display = 'none';
-    stopCamera();
-}
-
-// ==========================================
-// 4. 【重點修改】Section 展開/收合功能（點擊可互動收合）
-// ==========================================
-function toggleSection(id) {
-    const el = document.getElementById(id);
-    const header = el.parentElement.querySelector('.section-header');
-    
-    // 如果已經展開，就收合
-    if (el.style.display === 'block') {
-        el.style.display = 'none';
-        if (header) header.style.background = '#f8f9fa'; // 恢復原本顏色
-        window.speechSynthesis.cancel();
-        currentSpeakingId = null;
-    } else {
-        // 先把其他 section 全部收起來
-        document.querySelectorAll('.section-content').forEach(content => {
-            content.style.display = 'none';
-        });
-        
-        // 展開目前點擊的
-        el.style.display = 'block';
-        if (header) header.style.background = '#e3f2fd'; // 展開時變色提示
-        
-        toggleSpeak(id, el.innerText);
-    }
-}
-
-// ==========================================
-// 5. 互動內容功能
-// ==========================================
-function showInteractive(key) {
-    hideAllAreas();
-    const area = document.getElementById('interactive-display');
-    area.style.display = 'block';
-    area.innerHTML = `<h3>${interData[key].title}</h3><p>${interData[key].text}</p>`;
-    toggleSpeak(key, interData[key].title + "。" + interData[key].text);
-}
-
-function playBrushVideo() {
-    hideAllAreas();
-    const area = document.getElementById('interactive-display');
-    area.style.display = 'block';
-    area.innerHTML = `
-        <h3>🪥 貝氏刷牙法示範影片</h3>
-        <div class="video-container">
-            <iframe src="https://www.youtube.com/embed/m1g4c0JhGBM?autoplay=1" frameborder="0" allowfullscreen></iframe>
-        </div>
-        <p>請看影片，跟著老師一起刷，每個地方刷10秒喔！</p>
-    `;
-    toggleSpeak('video', "那我們開始學習貝氏刷牙法囉！");
-}
-
-// ==========================================
-// 6. 測驗系統（隨機10題）
-// ==========================================
-// ...（startQuiz, parseQuestions, renderQuestion, checkAnswer, nextQuestion 保持不變）...
-// （為了篇幅，這部分我先省略，你可以保留你原本的測驗函式）
-
-// ==========================================
-// 7. 相機與 AI 分析功能
-// ==========================================
-async function openCameraUI() {
-    hideAllAreas();
-    document.getElementById('camera-display').style.display = 'block';
-    document.getElementById('ai-msg').innerText = "請將鏡頭對準口腔，按下拍照鈕進行分析。";
-    document.getElementById('ai-result-box').style.display = 'none';
-
-    document.getElementById('camera-container').style.display = 'block';
-    document.getElementById('preview-container').style.display = 'none';
-
-    toggleSpeak('camera_intro', "請將鏡頭對準口腔，拍好照片後送出，讓我為您分析清潔狀況。");
-
-    try {
-        const video = document.getElementById('video-stream');
-        videoStream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: 'environment' }
-        });
-        video.srcObject = videoStream;
-    } catch (err) {
-        alert("無法開啟相機，請確認權限。\n錯誤: " + err.message);
-    }
-}
-
-function stopCamera() {
-    if (videoStream) {
-        videoStream.getTracks().forEach(track => track.stop());
-        videoStream = null;
-    }
-}
-
-function takePhoto() {
-    const video = document.getElementById('video-stream');
-    const canvas = document.getElementById('photo-canvas');
-    const preview = document.getElementById('photo-preview');
-
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    canvas.getContext('2d').drawImage(video, 0, 0);
-
-    preview.src = canvas.toDataURL('image/jpeg', 0.85);
-    document.getElementById('camera-container').style.display = 'none';
-    document.getElementById('preview-container').style.display = 'block';
-    stopCamera();
-}
-
-function retakePhoto() {
-    openCameraUI();
-}
-
-async function submitToGemini() {
-    const preview = document.getElementById('photo-preview');
-    const resultBox = document.getElementById('ai-result-box');
-   
-    resultBox.style.display = 'block';
-    resultBox.innerHTML = `
-        <div style="text-align: center; padding: 20px;">
-            <div class="loading-spinner"></div><br>
-            ⏳ AI 助教正在分析您的口腔照片，請稍候...
-        </div>
-    `;
-
-    toggleSpeak('loading', "正在為您分析照片，請稍候。");
-
-    const base64Image = preview.src.split(',')[1];
-
-    const requestData = {
-        contents: [{
-            parts: [
-                { text: "這是一張長者口腔照片，請用溫暖親切、鼓勵的語氣，用繁體中文詳細分析清潔狀況、可能問題，並給予簡單實用的改善建議。" },
-                { inlineData: { mimeType: "image/jpeg", data: base64Image } }
-            ]
-        }]
-    };
-
-    try {
-        const proxyUrl = "https://withered-boat-fb8a.lujane0511.workers.dev/v1beta/models/gemini-2.5-flash:generateContent";
-
-        const response = await fetch(proxyUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(requestData)
-        });
-
-        const data = await response.json();
-
-        if (!response.ok || data.error) {
-            throw new Error(data.error?.message || `HTTP 錯誤 ${response.status}`);
-        }
-
-        const aiText = data.candidates[0].content.parts[0].text;
-        resultBox.innerHTML = `<strong>🤖 AI 助教分析：</strong><br><br>${aiText.replace(/\n/g, '<br>')}`;
-        toggleSpeak('ai_result', aiText);
-
-    } catch (error) {
-        console.error("分析錯誤：", error);
-        resultBox.innerHTML = `❌ 分析失敗<br><small style="color:red;">${error.message}</small>`;
-    }
-}
+/* ====== 新增：相機與AI區塊專屬樣式 ====== */
+.camera-title { color: #17a2b8; font-weight: bold; margin-top: 0; }
+#video-stream, #photo-preview { width: 100%; border-radius: 15px; border: 2px solid #ddd; background-color: #000; }
+.camera-btn { padding: 15px; font-size: 1.3rem; border-radius: 15px; border: none; cursor: pointer; color: white; font-weight: bold; width: 100%; margin-top: 10px; }
+.btn-capture { background-color: #17a2b8; }
+.btn-retake { background-color: #6c757d; }
+.btn-submit { background-color: var(--primary); }
+.ai-response-box { background: #eef6ff; color: #333; border: 2px solid var(--primary); text-align: left; line-height: 1.6; }
+.loading-spinner { display: inline-block; width: 30px; height: 30px; border: 4px solid rgba(0, 102, 204, 0.3); border-radius: 50%; border-top-color: var(--primary); animation: spin 1s ease-in-out infinite; margin-bottom: 10px; }
+@keyframes spin { to { transform: rotate(360deg); } }
