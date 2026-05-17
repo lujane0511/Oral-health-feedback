@@ -27,7 +27,7 @@ let currentQuizBatch = [];
 let currentQuestionIndex = 0;
 
 // ==========================================
-// 2. 語音功能（加強版）
+// 2. 語音功能
 // ==========================================
 function toggleSpeak(id, txt) {
     if (currentSpeakingId === id && window.speechSynthesis.speaking) {
@@ -58,7 +58,7 @@ function updateSpeakButton(id, isSpeaking) {
     const btn = document.getElementById(`speak-btn-${id}`);
     if (btn) {
         btn.innerHTML = isSpeaking ? '🔊' : '🔇';
-        btn.title = isSpeaking ? '停止朗讀' : '朗讀內容';
+        btn.title = isSpeaking ? '停止朗讀' : '開始朗讀';
     }
 }
 
@@ -76,7 +76,7 @@ function hideAllAreas() {
 }
 
 // ==========================================
-// 4. 互動內容（含朗讀按鈕）
+// 4. 互動內容（只顯示，不自動朗讀）
 // ==========================================
 function showInteractive(key) {
     const area = document.getElementById('interactive-display');
@@ -93,12 +93,12 @@ function showInteractive(key) {
     area.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
             <h3>${interData[key].title}</h3>
-            <button id="speak-btn-${key}" class="speak-btn" onclick="toggleSpeak('${key}', '${interData[key].title}。${interData[key].text.replace(/<br>/g, ' ')}')" title="朗讀內容">🔇</button>
+            <button id="speak-btn-${key}" class="speak-btn" 
+                    onclick="toggleSpeak('${key}', '${interData[key].title}。${interData[key].text.replace(/<br>/g, ' ')}')" 
+                    title="開始朗讀">🔇</button>
         </div>
         <p>${interData[key].text}</p>
     `;
-    
-    toggleSpeak(key, interData[key].title + "。" + interData[key].text);
 }
 
 function playBrushVideo() {
@@ -116,19 +116,19 @@ function playBrushVideo() {
     area.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
             <h3>🪥 貝氏刷牙法示範影片</h3>
-            <button id="speak-btn-video" class="speak-btn" onclick="toggleSpeak('video', '那我們開始學習貝氏刷牙法囉！請看著影片跟著老師一起刷，每個地方都要刷乾淨喔。')" title="朗讀內容">🔇</button>
+            <button id="speak-btn-video" class="speak-btn" 
+                    onclick="toggleSpeak('video', '那我們開始學習貝氏刷牙法囉！請看著影片跟著老師一起刷，每個地方都要刷乾淨喔。')" 
+                    title="開始朗讀">🔇</button>
         </div>
         <div class="video-container">
             <iframe src="https://www.youtube.com/embed/m1g4c0JhGBM?autoplay=1" frameborder="0" allowfullscreen></iframe>
         </div>
         <p>請看影片，跟著老師一起刷，每個地方刷10秒喔！</p>
     `;
-    
-    toggleSpeak('video', "那我們開始學習貝氏刷牙法囉！請看著影片跟著老師一起刷，每個地方都要刷乾淨喔。");
 }
 
 // ==========================================
-// 5. 測驗系統（支援 Toggle）
+// 5. 測驗系統
 // ==========================================
 async function startQuiz() {
     const quizArea = document.getElementById('quiz-display');
@@ -139,7 +139,6 @@ async function startQuiz() {
     hideAllAreas();
     quizArea.style.display = 'block';
     document.getElementById('ai-msg').innerText = "小測驗時間！讓我們來看看你記住了多少吧！";
-    toggleSpeak('quiz_intro', "小測驗時間！讓我們來看看你記住了多少吧！");
 
     if (allQuestions.length === 0) {
         try {
@@ -158,8 +157,8 @@ async function startQuiz() {
     renderQuestion();
 }
 
-// ... 以下為你原本的測驗函式（保持不變）...
-function parseQuestions(text) {
+// （以下保持你原本的測驗函式）
+function parseQuestions(text) { /* ... 你原本的內容 ... */ 
     allQuestions = [];
     const lines = text.split('\n').map(l => l.trim()).filter(l => l);
     let i = 0;
@@ -183,11 +182,10 @@ function parseQuestions(text) {
     console.log(`✅ 已載入 ${allQuestions.length} 題`);
 }
 
-function renderQuestion() {
+function renderQuestion() { /* ... 你原本的內容 ... */ 
     const q = currentQuizBatch[currentQuestionIndex];
     document.getElementById('q-feedback').style.display = 'none';
     document.getElementById('q-next').style.display = 'none';
-    
     document.getElementById('q-title').innerText = `第 ${currentQuestionIndex + 1} 題 / ${currentQuizBatch.length} 題\n${q.question}`;
     const optionsEl = document.getElementById('q-options');
     optionsEl.innerHTML = '';
@@ -199,14 +197,12 @@ function renderQuestion() {
         btn.onclick = () => checkAnswer(btn, letter, q.correct, q.options);
         optionsEl.appendChild(btn);
     });
-    toggleSpeak('q', `第 ${currentQuestionIndex + 1} 題：${q.question}`);
 }
 
-function checkAnswer(selectedBtn, selectedLetter, correctLetter, allOptions) {
+function checkAnswer(selectedBtn, selectedLetter, correctLetter, allOptions) { /* ... 你原本的內容 ... */ 
     window.speechSynthesis.cancel();
     const allBtns = document.querySelectorAll('.option-btn');
     allBtns.forEach(btn => btn.disabled = true);
-
     const feedbackEl = document.getElementById('q-feedback');
     const nextBtn = document.getElementById('q-next');
     const correctIndex = correctLetter.charCodeAt(0) - 65;
@@ -223,10 +219,7 @@ function checkAnswer(selectedBtn, selectedLetter, correctLetter, allOptions) {
         feedbackEl.style.color = '#721c24';
         feedbackEl.innerHTML = `❌ 答錯了<br>正確答案是：${allOptions[correctIndex]}`;
     }
-
     feedbackEl.style.display = 'block';
-    toggleSpeak('feedback', feedbackEl.innerText.replace(/<br>/g, ''));
-
     nextBtn.innerText = (currentQuestionIndex >= currentQuizBatch.length - 1) ? "🔄 重新測驗" : "下一題 ➡️";
     nextBtn.style.display = 'block';
 }
@@ -241,7 +234,7 @@ function nextQuestion() {
 }
 
 // ==========================================
-// 6. 相機與 AI 分析（支援 Toggle）
+// 6. 相機與 AI 分析
 // ==========================================
 async function openCameraUI() {
     const cameraArea = document.getElementById('camera-display');
@@ -255,8 +248,6 @@ async function openCameraUI() {
     document.getElementById('ai-result-box').style.display = 'none';
     document.getElementById('camera-container').style.display = 'block';
     document.getElementById('preview-container').style.display = 'none';
-    toggleSpeak('camera_intro', "請將鏡頭對準口腔，拍好照片後送出，讓我為您分析清潔狀況。");
-
     try {
         const video = document.getElementById('video-stream');
         videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
@@ -293,7 +284,6 @@ function retakePhoto() {
 async function submitToGemini() {
     const preview = document.getElementById('photo-preview');
     const resultBox = document.getElementById('ai-result-box');
-   
     resultBox.style.display = 'block';
     resultBox.innerHTML = `
         <div style="text-align: center; padding: 20px;">
@@ -301,10 +291,8 @@ async function submitToGemini() {
             ⏳ AI 助教正在分析您的口腔照片，請稍候...
         </div>
     `;
-    toggleSpeak('loading', "正在為您分析照片，請稍候。");
 
     const base64Image = preview.src.split(',')[1];
-
     const requestData = {
         contents: [{
             parts: [
@@ -330,7 +318,6 @@ async function submitToGemini() {
 
         const aiText = data.candidates[0].content.parts[0].text;
         resultBox.innerHTML = `<strong>🤖 AI 助教分析：</strong><br><br>${aiText.replace(/\n/g, '<br>')}`;
-        toggleSpeak('ai_result', aiText);
 
     } catch (error) {
         console.error("分析錯誤：", error);
