@@ -3,7 +3,7 @@ console.log("✅ script.js 已成功載入！");
 // ==========================================
 // API 設定
 // ==========================================
-//const GEMINI_API_KEY = "你的新Key";   // 如果還沒換成新的，請先換
+// const GEMINI_API_KEY = "你的新Key";   // 如果還沒換成新的，請先換
 
 // 互動內容資料
 const interData = {
@@ -14,7 +14,7 @@ const interData = {
 
 let currentSpeakingId = null;
 let videoStream = null;
-// 【修改】將預設鏡頭改為前鏡頭 (user)
+// 將預設鏡頭改為前鏡頭 (user)
 let currentFacingMode = 'user'; 
 let videoTrack = null;
 
@@ -151,12 +151,11 @@ function playBrushVideo() {
 }
 
 // ==========================================
-// 相機與 AI 分析功能（包含鏡頭翻轉與智慧曝光拉桿）
+// 相機與 AI 分析功能
 // ==========================================
 async function openCameraUI(isSwitchingCamera = false) {
     const area = document.getElementById('camera-display');
 
-    // 如果不是正在切換鏡頭，才執行正常的「開關」邏輯
     if (!isSwitchingCamera) {
         if (area.style.display === 'block') {
             hideAllAreas();
@@ -168,7 +167,6 @@ async function openCameraUI(isSwitchingCamera = false) {
         document.getElementById('camera-container').style.display = 'block';
         document.getElementById('preview-container').style.display = 'none';
 
-        // 關閉先前的語音，不自動播放
         window.speechSynthesis.cancel();
         currentSpeakingId = null;
 
@@ -181,13 +179,11 @@ async function openCameraUI(isSwitchingCamera = false) {
         `;
     }
 
-    // 啟動相機前，先確保關閉舊的影像流
     stopCamera();
 
     try {
         const video = document.getElementById('video-stream');
         videoStream = await navigator.mediaDevices.getUserMedia({ 
-            // 動態套用當前的鏡頭方向 (前或後)
             video: { facingMode: currentFacingMode } 
         });
         video.srcObject = videoStream;
@@ -195,19 +191,15 @@ async function openCameraUI(isSwitchingCamera = false) {
         // 確保視訊畫面：前鏡頭鏡像顯示，後鏡頭正常顯示
         if (currentFacingMode === 'user') {
             video.style.transform = 'scaleX(-1)';
-            video.style.webkitTransform = 'scaleX(-1)'; // 支援 Safari
+            video.style.webkitTransform = 'scaleX(-1)'; 
         } else {
             video.style.transform = 'scaleX(1)';
-            video.style.webkitTransform = 'scaleX(1)'; // 支援 Safari
+            video.style.webkitTransform = 'scaleX(1)'; 
         }
 
-        // 取得影像軌道，用來控制曝光
         videoTrack = videoStream.getVideoTracks()[0];
-
-        // 注入控制按鈕 (如果還沒建立的話)
         injectCameraControls();
 
-        // 稍微延遲等待相機硬體載入完成，再檢查是否支援曝光功能
         setTimeout(() => {
             checkExposureSupport();
         }, 1000);
@@ -217,15 +209,13 @@ async function openCameraUI(isSwitchingCamera = false) {
     }
 }
 
-// 【新增】動態插入翻轉鏡頭與曝光控制拉桿
 function injectCameraControls() {
-    if (document.getElementById('camera-controls-wrapper')) return; // 已經加過就跳過
+    if (document.getElementById('camera-controls-wrapper')) return;
 
     const controls = document.createElement('div');
     controls.id = 'camera-controls-wrapper';
     controls.style = "display: flex; justify-content: space-between; align-items: stretch; margin-top: 15px; margin-bottom: 5px;";
     
-    // 建立 UI：左邊翻轉按鈕，右邊亮度拉桿 (預設先隱藏)
     controls.innerHTML = `
         <button onclick="switchCamera()" class="camera-btn" style="width: 48%; background-color: #6c757d; margin-top: 0; padding: 10px; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; gap: 5px;">
             🔄 翻轉鏡頭
@@ -236,19 +226,15 @@ function injectCameraControls() {
         </div>
     `;
     
-    // 將這個控制列插在影片(video-stream)和拍照按鈕(btn-capture)之間
     const videoElement = document.getElementById('video-stream');
     videoElement.parentNode.insertBefore(controls, videoElement.nextSibling);
 }
 
-// 【新增】切換前後鏡頭
 function switchCamera() {
-    // 翻轉邏輯：如果是後鏡頭就換前鏡頭，反之亦然
     currentFacingMode = (currentFacingMode === 'environment') ? 'user' : 'environment';
-    openCameraUI(true); // 傳入 true，告訴程式「我只是在換鏡頭，不要把整個畫面收起來」
+    openCameraUI(true); 
 }
 
-// 【修改】強化檢查手機是否支援曝光調整，並加入除錯訊息
 async function checkExposureSupport() {
     if (!videoTrack) {
         console.log("找不到影像軌道，無法檢查曝光功能。");
@@ -261,26 +247,20 @@ async function checkExposureSupport() {
         const wrapper = document.getElementById('exposure-wrapper');
         const slider = document.getElementById('exposure-slider');
 
-        console.log("當前鏡頭支援的功能：", capabilities); // 印出相機支援的所有功能
-
-        // 偵測硬體與瀏覽器是否開放 exposureCompensation 權限
         if (capabilities.exposureCompensation) {
-            console.log("太棒了！此鏡頭支援曝光調整。");
-            wrapper.style.display = 'flex'; // 支援的話，顯示亮度控制區塊
+            wrapper.style.display = 'flex'; 
             slider.min = capabilities.exposureCompensation.min;
             slider.max = capabilities.exposureCompensation.max;
             slider.step = capabilities.exposureCompensation.step;
             slider.value = settings.exposureCompensation || 0;
         } else {
-            console.log("抱歉，當前鏡頭或瀏覽器不支援網頁調整曝光。");
-            wrapper.style.display = 'none'; // 不支援的話，自動隱藏
+            wrapper.style.display = 'none'; 
         }
     } catch (err) {
         console.log("讀取相機設定失敗：", err);
     }
 }
 
-// 【新增】滑動拉桿變更曝光值
 async function changeExposure(value) {
     if (!videoTrack) return;
     try {
@@ -306,12 +286,10 @@ function takePhoto() {
 
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-    // 拍照時直接從影片源繪製Raw影像。Canvas通常會繪製非反轉的原始畫面，保留真理解剖位置供AI分析。
     canvas.getContext('2d').drawImage(video, 0, 0);
 
     preview.src = canvas.toDataURL('image/jpeg', 0.85);
 
-    // 【修正】確保預覽照片的翻轉狀態與當下的鏡頭方向完全一致
     if (currentFacingMode === 'user') {
         preview.style.transform = 'scaleX(-1)';
         preview.style.webkitTransform = 'scaleX(-1)'; 
@@ -351,10 +329,29 @@ async function submitToGemini() {
 
     const base64Image = preview.src.split(',')[1];
 
+    // ==========================================
+    // 【重點修改】動態讀取 PromptWords.txt
+    // ==========================================
+    let promptText = "這是一張長者口腔照片，請用溫暖親切、鼓勵的語氣，用繁體中文詳細分析清潔狀況、可能問題，並給予簡單實用的改善建議。"; // 如果讀取失敗的預設備用文字
+
+    try {
+        // 從伺服器 (或 Github Pages) 動態獲取 PromptWords.txt 的內容
+        const promptResponse = await fetch('PromptWords.txt');
+        if (promptResponse.ok) {
+            promptText = await promptResponse.text();
+            console.log("✅ 成功讀取 PromptWords.txt 作為 AI 提示詞");
+        } else {
+            console.warn("⚠️ 無法讀取 PromptWords.txt (可能路徑錯誤)，使用預設提示詞");
+        }
+    } catch (error) {
+        console.warn("⚠️ 發生網路錯誤，無法讀取 PromptWords.txt，使用預設提示詞", error);
+    }
+
+    // 將讀取到的提示詞 (promptText) 放進發送給 AI 的資料中
     const requestData = {
         contents: [{
             parts: [
-                { text: "這是一張長者口腔照片，請用溫暖親切、鼓勵的語氣，用繁體中文詳細分析清潔狀況、可能問題，並給予簡單實用的改善建議。" },
+                { text: promptText },
                 { inlineData: { mimeType: "image/jpeg", data: base64Image } }
             ]
         }]
@@ -393,7 +390,6 @@ async function submitToGemini() {
         resultBox.innerHTML = `❌ 分析失敗<br><small style="color:red;">${error.message}</small>`;
     }
 }
-
 
 // ==========================================
 // 測驗功能 (Quiz)
