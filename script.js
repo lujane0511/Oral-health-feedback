@@ -27,22 +27,39 @@ let currentQuizBatch = [];
 let currentQuestionIndex = 0;
 
 // ==========================================
-// 2. 語音功能
+// 2. 語音功能（加強版）
 // ==========================================
 function toggleSpeak(id, txt) {
     if (currentSpeakingId === id && window.speechSynthesis.speaking) {
         window.speechSynthesis.cancel();
         currentSpeakingId = null;
+        updateSpeakButton(id, false);
         return;
     }
+
     window.speechSynthesis.cancel();
     const cleanTxt = txt.replace(/<br>/g, '、').replace(/●/g, '');
     const utterance = new SpeechSynthesisUtterance(cleanTxt);
     utterance.lang = 'zh-TW';
     utterance.rate = 0.85;
-    utterance.onend = () => { if (currentSpeakingId === id) currentSpeakingId = null; };
+    utterance.onend = () => {
+        if (currentSpeakingId === id) {
+            currentSpeakingId = null;
+            updateSpeakButton(id, false);
+        }
+    };
+
     window.speechSynthesis.speak(utterance);
     currentSpeakingId = id;
+    updateSpeakButton(id, true);
+}
+
+function updateSpeakButton(id, isSpeaking) {
+    const btn = document.getElementById(`speak-btn-${id}`);
+    if (btn) {
+        btn.innerHTML = isSpeaking ? '🔊' : '🔇';
+        btn.title = isSpeaking ? '停止朗讀' : '朗讀內容';
+    }
 }
 
 // ==========================================
@@ -54,10 +71,12 @@ function hideAllAreas() {
     document.getElementById('camera-display').style.display = 'none';
     document.getElementById('interactive-display').removeAttribute('data-current');
     stopCamera();
+    window.speechSynthesis.cancel();
+    currentSpeakingId = null;
 }
 
 // ==========================================
-// 4. 互動內容 - 點擊展開 / 再次點擊收合
+// 4. 互動內容（含朗讀按鈕）
 // ==========================================
 function showInteractive(key) {
     const area = document.getElementById('interactive-display');
@@ -71,7 +90,14 @@ function showInteractive(key) {
     area.style.display = 'block';
     area.setAttribute('data-current', key);
     
-    area.innerHTML = `<h3>${interData[key].title}</h3><p>${interData[key].text}</p>`;
+    area.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <h3>${interData[key].title}</h3>
+            <button id="speak-btn-${key}" class="speak-btn" onclick="toggleSpeak('${key}', '${interData[key].title}。${interData[key].text.replace(/<br>/g, ' ')}')" title="朗讀內容">🔇</button>
+        </div>
+        <p>${interData[key].text}</p>
+    `;
+    
     toggleSpeak(key, interData[key].title + "。" + interData[key].text);
 }
 
@@ -88,17 +114,21 @@ function playBrushVideo() {
     area.setAttribute('data-current', 'video');
     
     area.innerHTML = `
-        <h3>🪥 貝氏刷牙法示範影片</h3>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <h3>🪥 貝氏刷牙法示範影片</h3>
+            <button id="speak-btn-video" class="speak-btn" onclick="toggleSpeak('video', '那我們開始學習貝氏刷牙法囉！請看著影片跟著老師一起刷，每個地方都要刷乾淨喔。')" title="朗讀內容">🔇</button>
+        </div>
         <div class="video-container">
             <iframe src="https://www.youtube.com/embed/m1g4c0JhGBM?autoplay=1" frameborder="0" allowfullscreen></iframe>
         </div>
         <p>請看影片，跟著老師一起刷，每個地方刷10秒喔！</p>
     `;
-    toggleSpeak('video', "那我們開始學習貝氏刷牙法囉！");
+    
+    toggleSpeak('video', "那我們開始學習貝氏刷牙法囉！請看著影片跟著老師一起刷，每個地方都要刷乾淨喔。");
 }
 
 // ==========================================
-// 5. 測驗系統（隨機10題 + Toggle）
+// 5. 測驗系統（支援 Toggle）
 // ==========================================
 async function startQuiz() {
     const quizArea = document.getElementById('quiz-display');
@@ -106,7 +136,6 @@ async function startQuiz() {
         hideAllAreas();
         return;
     }
-
     hideAllAreas();
     quizArea.style.display = 'block';
     document.getElementById('ai-msg').innerText = "小測驗時間！讓我們來看看你記住了多少吧！";
@@ -129,6 +158,7 @@ async function startQuiz() {
     renderQuestion();
 }
 
+// ... 以下為你原本的測驗函式（保持不變）...
 function parseQuestions(text) {
     allQuestions = [];
     const lines = text.split('\n').map(l => l.trim()).filter(l => l);
@@ -159,10 +189,8 @@ function renderQuestion() {
     document.getElementById('q-next').style.display = 'none';
     
     document.getElementById('q-title').innerText = `第 ${currentQuestionIndex + 1} 題 / ${currentQuizBatch.length} 題\n${q.question}`;
-
     const optionsEl = document.getElementById('q-options');
     optionsEl.innerHTML = '';
-
     q.options.forEach((opt, index) => {
         const letter = String.fromCharCode(65 + index);
         const btn = document.createElement('button');
@@ -171,7 +199,6 @@ function renderQuestion() {
         btn.onclick = () => checkAnswer(btn, letter, q.correct, q.options);
         optionsEl.appendChild(btn);
     });
-
     toggleSpeak('q', `第 ${currentQuestionIndex + 1} 題：${q.question}`);
 }
 
@@ -222,15 +249,12 @@ async function openCameraUI() {
         hideAllAreas();
         return;
     }
-
     hideAllAreas();
     cameraArea.style.display = 'block';
     document.getElementById('ai-msg').innerText = "請將鏡頭對準口腔，按下拍照鈕進行分析。";
     document.getElementById('ai-result-box').style.display = 'none';
-
     document.getElementById('camera-container').style.display = 'block';
     document.getElementById('preview-container').style.display = 'none';
-
     toggleSpeak('camera_intro', "請將鏡頭對準口腔，拍好照片後送出，讓我為您分析清潔狀況。");
 
     try {
@@ -253,11 +277,9 @@ function takePhoto() {
     const video = document.getElementById('video-stream');
     const canvas = document.getElementById('photo-canvas');
     const preview = document.getElementById('photo-preview');
-
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     canvas.getContext('2d').drawImage(video, 0, 0);
-
     preview.src = canvas.toDataURL('image/jpeg', 0.85);
     document.getElementById('camera-container').style.display = 'none';
     document.getElementById('preview-container').style.display = 'block';
@@ -279,7 +301,6 @@ async function submitToGemini() {
             ⏳ AI 助教正在分析您的口腔照片，請稍候...
         </div>
     `;
-
     toggleSpeak('loading', "正在為您分析照片，請稍候。");
 
     const base64Image = preview.src.split(',')[1];
