@@ -49,43 +49,35 @@ function toggleSpeak(id, txt) {
 // 3. 畫面控制
 // ==========================================
 function hideAllAreas() {
-    const interactive = document.getElementById('interactive-display');
-    interactive.style.display = 'none';
-    interactive.removeAttribute('data-current');   // 清除目前狀態
+    document.getElementById('interactive-display').style.display = 'none';
     document.getElementById('quiz-display').style.display = 'none';
     document.getElementById('camera-display').style.display = 'none';
+    document.getElementById('interactive-display').removeAttribute('data-current');
     stopCamera();
 }
 
 // ==========================================
-// 4. 互動內容 - 【真正支援點兩次收合】
+// 4. 互動內容 - 點擊展開 / 再次點擊收合
 // ==========================================
 function showInteractive(key) {
     const area = document.getElementById('interactive-display');
     
-    // 【重點】點第二次同一個按鈕 → 收合
     if (area.style.display === 'block' && area.getAttribute('data-current') === key) {
         hideAllAreas();
         return;
     }
     
-    // 顯示新內容（自動隱藏其他）
     hideAllAreas();
     area.style.display = 'block';
     area.setAttribute('data-current', key);
     
-    area.innerHTML = `
-        <h3>${interData[key].title}</h3>
-        <p>${interData[key].text}</p>
-    `;
-    
+    area.innerHTML = `<h3>${interData[key].title}</h3><p>${interData[key].text}</p>`;
     toggleSpeak(key, interData[key].title + "。" + interData[key].text);
 }
 
 function playBrushVideo() {
     const area = document.getElementById('interactive-display');
     
-    // 【重點】點第二次同一個按鈕 → 收合
     if (area.style.display === 'block' && area.getAttribute('data-current') === 'video') {
         hideAllAreas();
         return;
@@ -102,17 +94,21 @@ function playBrushVideo() {
         </div>
         <p>請看影片，跟著老師一起刷，每個地方刷10秒喔！</p>
     `;
-    
     toggleSpeak('video', "那我們開始學習貝氏刷牙法囉！");
 }
 
 // ==========================================
-// 5. 測驗系統（隨機10題）
+// 5. 測驗系統（隨機10題 + Toggle）
 // ==========================================
 async function startQuiz() {
-    window.speechSynthesis.cancel();
+    const quizArea = document.getElementById('quiz-display');
+    if (quizArea.style.display === 'block') {
+        hideAllAreas();
+        return;
+    }
+
     hideAllAreas();
-    document.getElementById('quiz-display').style.display = 'block';
+    quizArea.style.display = 'block';
     document.getElementById('ai-msg').innerText = "小測驗時間！讓我們來看看你記住了多少吧！";
     toggleSpeak('quiz_intro', "小測驗時間！讓我們來看看你記住了多少吧！");
 
@@ -218,11 +214,17 @@ function nextQuestion() {
 }
 
 // ==========================================
-// 6. 相機與 AI 分析
+// 6. 相機與 AI 分析（支援 Toggle）
 // ==========================================
 async function openCameraUI() {
+    const cameraArea = document.getElementById('camera-display');
+    if (cameraArea.style.display === 'block') {
+        hideAllAreas();
+        return;
+    }
+
     hideAllAreas();
-    document.getElementById('camera-display').style.display = 'block';
+    cameraArea.style.display = 'block';
     document.getElementById('ai-msg').innerText = "請將鏡頭對準口腔，按下拍照鈕進行分析。";
     document.getElementById('ai-result-box').style.display = 'none';
 
