@@ -56,17 +56,29 @@ function showInteractive(key) {
 }
 
 function playBrushVideo() {
-    hideAllAreas();
     const area = document.getElementById('interactive-display');
+    if (area.style.display === 'block' && area.getAttribute('data-current') === 'video') {
+        hideAllAreas();
+        return;
+    }
+    hideAllAreas();
     area.style.display = 'block';
+    area.setAttribute('data-current', 'video');
+    
+    const videoIntro = "請看影片，跟著老師一起刷，每個地方刷10秒喔！";
+    
+    // 核心修正：加入 class="speak-btn" 連結 CSS 樣式，並更新為新的 YouTube 影片連結
     area.innerHTML = `
-        <h3>🪥 貝氏刷牙法示範影片</h3>
-        <div class="video-container">
-            <iframe src="https://www.youtube.com/embed/m1g4c0JhGBM?autoplay=1" frameborder="0" allowfullscreen></iframe>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3 style="margin: 0; color: var(--primary);">🪥 貝氏刷牙法示範影片</h3>
+            <button id="speak-btn-video" class="speak-btn" title="開始朗讀" onclick="toggleSpeak('video', '${videoIntro}')">🔇</button>
         </div>
-        <p>請看影片，跟著老師一起刷，每個地方刷10秒喔！</p>
+        <div class="video-container">
+            <!-- 這裡已經幫你替換成新的貝氏刷牙法影片連結 -->
+            <iframe src="https://www.youtube.com/embed/m1g4c0JhGBM" frameborder="0" allowfullscreen></iframe>
+        </div>
+        <p style="margin-top: 10px; font-weight: bold;">${videoIntro}</p>
     `;
-    toggleSpeak('video', "那我們開始學習貝氏刷牙法囉！");
 }
 
 // ==========================================
