@@ -30,7 +30,6 @@ let currentQuestionIndex = 0;
 // 2. 語音功能
 // ==========================================
 function toggleSpeak(id, txt) {
-    // 如果點擊的是正在朗讀的按鈕，就停止
     if (currentSpeakingId === id && window.speechSynthesis.speaking) {
         window.speechSynthesis.cancel();
         currentSpeakingId = null;
@@ -38,14 +37,7 @@ function toggleSpeak(id, txt) {
         return;
     }
     
-    // 先停止其他正在播放的語音
-    if (window.speechSynthesis.speaking) {
-        window.speechSynthesis.cancel();
-        if (currentSpeakingId) {
-            updateSpeakButton(currentSpeakingId, false);
-        }
-    }
-    
+    window.speechSynthesis.cancel();
     // 清除換行與標點符號，讓語音更流暢
     const cleanTxt = txt.replace(/\n/g, '、').replace(/●/g, '');
     const utterance = new SpeechSynthesisUtterance(cleanTxt);
@@ -53,18 +45,15 @@ function toggleSpeak(id, txt) {
     utterance.rate = 0.85;
     
     utterance.onend = () => {
-        currentSpeakingId = null;
-        updateSpeakButton(id, false);
-    };
-
-    utterance.onerror = () => {
-        currentSpeakingId = null;
-        updateSpeakButton(id, false);
+        if (currentSpeakingId === id) {
+            currentSpeakingId = null;
+            updateSpeakButton(id, false);
+        }
     };
     
+    window.speechSynthesis.speak(utterance);
     currentSpeakingId = id;
     updateSpeakButton(id, true);
-    window.speechSynthesis.speak(utterance);
 }
 
 function updateSpeakButton(id, isSpeaking) {
@@ -73,7 +62,7 @@ function updateSpeakButton(id, isSpeaking) {
         btn.innerHTML = isSpeaking ? '🔊' : '🔇';
         btn.title = isSpeaking ? '停止朗讀' : '開始朗讀';
         
-        // 動態切換 CSS 呼吸燈與美化樣式
+        // 核心修正：動態切換 CSS 呼吸燈與美化樣式
         if (isSpeaking) {
             btn.classList.add('speaking');
         } else {
@@ -92,24 +81,22 @@ function hideAllAreas() {
     document.getElementById('interactive-display').removeAttribute('data-current');
     stopCamera();
     window.speechSynthesis.cancel();
-    if (currentSpeakingId) {
-        updateSpeakButton(currentSpeakingId, false);
-    }
     currentSpeakingId = null;
 }
 
-// 補上底部知識庫摺疊面板功能
+// 補上底專業知識庫摺疊面板控制函式（原本遺漏此功能）
 function toggleSection(id) {
     const content = document.getElementById(id);
-    const header = content.previousElementSibling;
-    const arrow = header.querySelector('span');
-    
-    if (content.style.display === 'block') {
-        content.style.display = 'none';
-        arrow.innerText = '▼';
-    } else {
-        content.style.display = 'block';
-        arrow.innerText = '▲';
+    if (content) {
+        const isHidden = content.style.display === 'none' || content.style.display === '';
+        content.style.display = isHidden ? 'block' : 'none';
+        
+        // 改變箭頭方向
+        const header = content.previousElementSibling;
+        const arrow = header.querySelector('span');
+        if (arrow) {
+            arrow.innerText = isHidden ? '▲' : '▼';
+        }
     }
 }
 
@@ -126,13 +113,16 @@ function showInteractive(key) {
     area.style.display = 'block';
     area.setAttribute('data-current', key);
     
-    // 安全處理字串，避免單雙引號讓 HTML onclick 壞掉
-    const textForSpeak = interData[key].text.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-    
-    // 渲染畫面：此時只會出現 🔇 按鈕，點擊後才會觸發 toggleSpeak
+    // 核心修正：同時處理換行符號、單雙引號，避免 HTML onclick 屬性因字串解析出錯而斷裂
+    const textForSpeak = interData[key].text
+        .replace(/\\/g, '\\\\')
+        .replace(/'/g, "\\'")
+        .replace(/"/g, '&quot;')
+        .replace(/\n/g, '\\n');
+
     area.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <h3 style="margin: 0; color: var(--primary); font-size: 1.6rem;">${interData[key].title}</h3>
+            <h3 style="margin: 0; color: var(--primary);">${interData[key].title}</h3>
             <button id="speak-btn-${key}" class="speak-btn" title="開始朗讀" onclick="toggleSpeak('${key}', '${textForSpeak}')">🔇</button>
         </div>
         <div style="white-space: pre-line; line-height: 1.8;">${interData[key].text}</div>
@@ -151,9 +141,10 @@ function playBrushVideo() {
     
     const videoIntro = "請看影片，跟著老師一起刷，每個地方刷10秒喔！";
     
+    // 核心修正：加入 class="speak-btn" 連結 CSS 樣式
     area.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <h3 style="margin: 0; color: var(--primary); font-size: 1.6rem;">🪥 貝氏刷牙法示範影片</h3>
+            <h3 style="margin: 0; color: var(--primary);">🪥 貝氏刷牙法示範影片</h3>
             <button id="speak-btn-video" class="speak-btn" title="開始朗讀" onclick="toggleSpeak('video', '${videoIntro}')">🔇</button>
         </div>
         <div class="video-container">
