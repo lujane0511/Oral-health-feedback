@@ -191,15 +191,10 @@ async function openCameraUI(isSwitchingCamera = false) {
         });
         video.srcObject = videoStream;
         
-        // 【新增】修正水平反轉問題。
-        // 後鏡頭(environment)不需要反轉 (scaleX(1))，前鏡頭(user)通常需要像鏡子一樣反轉 (scaleX(-1))
-        if (currentFacingMode === 'user') {
-            video.style.transform = 'scaleX(-1)';
-            video.style.webkitTransform = 'scaleX(-1)'; // 支援 Safari
-        } else {
-            video.style.transform = 'scaleX(1)';
-            video.style.webkitTransform = 'scaleX(1)'; // 支援 Safari
-        }
+        // 【修正】確保視訊畫面始終呈「鏡像」顯示（像照鏡子一樣），以便使用者正確引導刷牙動作。
+        // 這樣舉右手時影像右手動，符合使用者習慣。
+        video.style.transform = 'scaleX(-1)';
+        video.style.webkitTransform = 'scaleX(-1)'; // 支援 Safari
 
         // 取得影像軌道，用來控制曝光
         videoTrack = videoStream.getVideoTracks()[0];
@@ -309,10 +304,15 @@ function takePhoto() {
 
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-    // 拍照時直接從影片源繪製，Raw Stream 通常不會反轉，所以這裡不需要額外處理反轉問題
+    // 拍照時直接從影片源繪製Raw影像。Canvas通常會繪製非反轉的原始畫面，保留真理解剖位置供AI分析。
     canvas.getContext('2d').drawImage(video, 0, 0);
 
     preview.src = canvas.toDataURL('image/jpeg', 0.85);
+
+    // 【修正】確保預覽照片也呈現CSS「鏡像」，與視訊畫面視覺一致，不讓長輩困惑。
+    preview.style.transform = 'scaleX(-1)';
+    preview.style.webkitTransform = 'scaleX(-1)'; // 支援 Safari
+
     document.getElementById('camera-container').style.display = 'none';
     document.getElementById('preview-container').style.display = 'block';
     stopCamera();
@@ -334,7 +334,7 @@ async function submitToGemini() {
     resultBox.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
             <strong style="color: var(--primary);">⏳ AI 助教正在分析...</strong>
-            <button id="speak-btn-loading" class="speak-btn" title="朗讀 / 停止" onclick="toggleSpeak('loading', '${loadingText}')">🔇</button>
+            <button id="speak-btn-loading" class="speak-btn" title="朗隔 / 停止" onclick="toggleSpeak('loading', '${loadingText}')">🔇</button>
         </div>
         <div style="text-align: center; padding: 20px;">
             <div class="loading-spinner"></div><br>
