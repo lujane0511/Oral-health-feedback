@@ -84,22 +84,6 @@ function hideAllAreas() {
     currentSpeakingId = null;
 }
 
-// 補上底專業知識庫摺疊面板控制函式（原本遺漏此功能）
-function toggleSection(id) {
-    const content = document.getElementById(id);
-    if (content) {
-        const isHidden = content.style.display === 'none' || content.style.display === '';
-        content.style.display = isHidden ? 'block' : 'none';
-        
-        // 改變箭頭方向
-        const header = content.previousElementSibling;
-        const arrow = header.querySelector('span');
-        if (arrow) {
-            arrow.innerText = isHidden ? '▲' : '▼';
-        }
-    }
-}
-
 // ==========================================
 // 4. 互動內容（點擊只顯示，不自動朗讀）
 // ==========================================
@@ -113,13 +97,8 @@ function showInteractive(key) {
     area.style.display = 'block';
     area.setAttribute('data-current', key);
     
-    // 核心修正：同時處理換行符號、單雙引號，避免 HTML onclick 屬性因字串解析出錯而斷裂
-    const textForSpeak = interData[key].text
-        .replace(/\\/g, '\\\\')
-        .replace(/'/g, "\\'")
-        .replace(/"/g, '&quot;')
-        .replace(/\n/g, '\\n');
-
+    // 核心修正：加入 class="speak-btn" 連結 CSS 樣式，並修正引號與傳參
+    const textForSpeak = interData[key].text.replace(/"/g, '&quot;');
     area.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
             <h3 style="margin: 0; color: var(--primary);">${interData[key].title}</h3>
@@ -350,6 +329,7 @@ async function submitToGemini() {
         }
         
         const aiText = data.candidates[0].content.parts[0].text;
+        // 將換行符號轉成 HTML 換行
         resultBox.innerHTML = `<strong>🤖 AI 助教分析：</strong><br><br>${aiText.replace(/\n/g, '<br>')}`;
     } catch (error) {
         console.error("分析錯誤：", error);
