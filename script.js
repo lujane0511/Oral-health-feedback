@@ -25,31 +25,43 @@ function toggleSpeak(id, txt) {
     if (currentSpeakingId === id && window.speechSynthesis.speaking) {
         window.speechSynthesis.cancel();
         currentSpeakingId = null;
-        if (btn) btn.classList.remove('speaking'); // 移除閃爍動畫
+        if (btn) {
+            btn.classList.remove('speaking'); // 移除閃爍動畫
+            btn.innerText = '🔇'; // 切換回靜音圖示
+        }
         return;
     }
     
     // 否則，先停止所有正在進行的語音
     window.speechSynthesis.cancel();
     
-    // 移除畫面上所有朗讀按鈕的動畫狀態
-    document.querySelectorAll('.speak-btn').forEach(b => b.classList.remove('speaking'));
+    // 移除畫面上所有朗讀按鈕的動畫狀態，並統一恢復為靜音圖示
+    document.querySelectorAll('.speak-btn').forEach(b => {
+        b.classList.remove('speaking');
+        b.innerText = '🔇';
+    });
 
     const cleanTxt = txt.replace(/<br>/g, '、').replace(/●/g, '');
     const s = new SpeechSynthesisUtterance(cleanTxt);
     s.lang = 'zh-TW';
     s.rate = 0.85;
     
-    // 當開始朗讀時，加上按鈕特效
+    // 當開始朗讀時，加上按鈕特效並切換為朗讀圖示
     s.onstart = () => {
-        if (btn) btn.classList.add('speaking');
+        if (btn) {
+            btn.classList.add('speaking');
+            btn.innerText = '🔊';
+        }
     };
 
-    // 當朗讀結束時，清除按鈕特效與狀態
+    // 當朗讀結束時，清除按鈕特效與狀態，並恢復為靜音圖示
     s.onend = () => { 
         if (currentSpeakingId === id) {
             currentSpeakingId = null; 
-            if (btn) btn.classList.remove('speaking');
+            if (btn) {
+                btn.classList.remove('speaking');
+                btn.innerText = '🔇';
+            }
         }
     };
     
@@ -64,6 +76,18 @@ function hideAllAreas() {
     document.getElementById('interactive-display').style.display = 'none';
     document.getElementById('quiz-display').style.display = 'none';
     document.getElementById('camera-display').style.display = 'none';
+    
+    // 關閉功能時，恢復最上方的預設歡迎詞
+    document.getElementById('ai-msg').innerHTML = "阿公阿嬤早安！我是口腔小管家。<br>今天我們要一起守護牙齒喔！請點選下方功能：";
+    
+    // 切換畫面時確保語音停止並重置按鈕狀態
+    window.speechSynthesis.cancel();
+    currentSpeakingId = null;
+    document.querySelectorAll('.speak-btn').forEach(b => {
+        b.classList.remove('speaking');
+        b.innerText = '🔇';
+    });
+
     stopCamera();
 }
 
@@ -73,32 +97,26 @@ function hideAllAreas() {
 function showInteractive(key) {
     const area = document.getElementById('interactive-display');
 
-    // 【新增】檢查是否已經開啟這個區塊，如果已經開啟，再按一次主選單按鈕就會關閉
+    // 檢查是否已經開啟這個區塊，如果已經開啟，再按一次主選單按鈕就會關閉
     if (area.style.display === 'block' && area.getAttribute('data-current') === key) {
         hideAllAreas();
-        window.speechSynthesis.cancel(); // 關閉畫面的同時，把語音也停掉
-        currentSpeakingId = null;
         return;
     }
 
     // 如果還沒開啟，就先隱藏所有畫面，然後顯示這一個
     hideAllAreas();
     area.style.display = 'block';
-    area.setAttribute('data-current', key); // 記住目前顯示的是哪一個功能 (tip, denture, 或 floss)
-
-    // 切換頁面時，自動停止任何尚未結束的語音
-    window.speechSynthesis.cancel();
-    currentSpeakingId = null;
+    area.setAttribute('data-current', key); 
 
     const title = interData[key].title;
     const text = interData[key].text;
     const speakText = title + "。" + text;
 
-    // 渲染內容：包含獨立的朗讀按鈕，且「不會」自動觸發語音
+    // 預設為 🔇
     area.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
             <h3 style="margin: 0; color: var(--primary);">${title}</h3>
-            <button id="speak-btn-${key}" class="speak-btn" title="朗讀 / 停止" onclick="toggleSpeak('${key}', '${speakText}')">🔊</button>
+            <button id="speak-btn-${key}" class="speak-btn" title="朗讀 / 停止" onclick="toggleSpeak('${key}', '${speakText}')">🔇</button>
         </div>
         <p>${text}</p>
     `;
@@ -116,44 +134,27 @@ function playBrushVideo() {
     
     const videoIntro = "請看影片，跟著老師一起刷，每個地方刷10秒喔！";
     
-    // 核心修正：加入 class="speak-btn" 連結 CSS 樣式，並更新為新的 YouTube 影片連結
+    // 預設為 🔇
     area.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
             <h3 style="margin: 0; color: var(--primary);">🪥 貝氏刷牙法示範影片</h3>
             <button id="speak-btn-video" class="speak-btn" title="開始朗讀" onclick="toggleSpeak('video', '${videoIntro}')">🔇</button>
         </div>
         <div class="video-container">
-            <!-- 這裡已經幫你替換成新的貝氏刷牙法影片連結 -->
             <iframe src="https://www.youtube.com/embed/m1g4c0JhGBM" frameborder="0" allowfullscreen></iframe>
         </div>
         <p style="margin-top: 10px; font-weight: bold;">${videoIntro}</p>
     `;
 }
-// ==========================================
-// 畫面控制
-// ==========================================
-function hideAllAreas() {
-    document.getElementById('interactive-display').style.display = 'none';
-    document.getElementById('quiz-display').style.display = 'none';
-    document.getElementById('camera-display').style.display = 'none';
-    
-    // 【新增】關閉功能時，恢復最上方的預設歡迎詞
-    document.getElementById('ai-msg').innerHTML = "阿公阿嬤早安！我是口腔小管家。<br>今天我們要一起守護牙齒喔！請點選下方功能：";
-    
-    stopCamera();
-}
 
 // ==========================================
-// 相機與 AI 分析功能（包含每個階段的朗讀按鈕）
+// 相機與 AI 分析功能
 // ==========================================
 async function openCameraUI() {
     const area = document.getElementById('camera-display');
 
-    // 再按一次主按鈕即關閉畫面與語音
     if (area.style.display === 'block') {
         hideAllAreas();
-        window.speechSynthesis.cancel();
-        currentSpeakingId = null;
         return;
     }
 
@@ -163,16 +164,12 @@ async function openCameraUI() {
     document.getElementById('camera-container').style.display = 'block';
     document.getElementById('preview-container').style.display = 'none';
 
-    // 關閉先前的語音，不自動播放
-    window.speechSynthesis.cancel();
-    currentSpeakingId = null;
-
-    // 【修正重點】將朗讀按鈕直接放在最上方的提示框中，絕對不會被擋住！
     const introText = "請將鏡頭對準口腔，拍好照片後送出，讓我為您分析清潔狀況。";
+    // 預設為 🔇
     document.getElementById('ai-msg').innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <span>📷 ${introText}</span>
-            <button id="speak-btn-camera" class="speak-btn" title="朗讀 / 停止" onclick="toggleSpeak('camera', '${introText}')">🔊</button>
+            <button id="speak-btn-camera" class="speak-btn" title="朗讀 / 停止" onclick="toggleSpeak('camera', '${introText}')">🔇</button>
         </div>
     `;
 
@@ -221,11 +218,11 @@ async function submitToGemini() {
     resultBox.style.display = 'block';
     
     const loadingText = "正在為您分析照片，請稍候。";
-    // 【修正重點】載入中的畫面也加入專屬朗讀按鈕
+    // 預設為 🔇
     resultBox.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
             <strong style="color: var(--primary);">⏳ AI 助教正在分析...</strong>
-            <button id="speak-btn-loading" class="speak-btn" title="朗讀 / 停止" onclick="toggleSpeak('loading', '${loadingText}')">🔊</button>
+            <button id="speak-btn-loading" class="speak-btn" title="朗讀 / 停止" onclick="toggleSpeak('loading', '${loadingText}')">🔇</button>
         </div>
         <div style="text-align: center; padding: 20px;">
             <div class="loading-spinner"></div><br>
@@ -261,16 +258,15 @@ async function submitToGemini() {
 
         const aiText = data.candidates[0].content.parts[0].text;
         
-        // 【修正重點】結果出來後，排版加入結果專用的朗讀按鈕
+        // 預設為 🔇
         resultBox.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                 <strong style="font-size: 1.2rem; color: var(--primary);">🤖 AI 助教分析結果：</strong>
-                <button id="speak-btn-ai" class="speak-btn" title="朗讀 / 停止">🔊</button>
+                <button id="speak-btn-ai" class="speak-btn" title="朗讀 / 停止">🔇</button>
             </div>
             <div style="line-height: 1.6;">${aiText.replace(/\n/g, '<br>')}</div>
         `;
         
-        // 綁定點擊事件，避免 AI 生成的標點符號破壞 HTML
         document.getElementById('speak-btn-ai').onclick = () => toggleSpeak('ai', aiText);
 
     } catch (error) {
@@ -281,7 +277,7 @@ async function submitToGemini() {
 
 
 // ==========================================
-// 測驗功能 (Quiz) - 全面加入朗讀鍵與防呆
+// 測驗功能 (Quiz)
 // ==========================================
 const quizData = [
     { q: "刷牙的最佳時機是？", options: ["吃完東西立刻刷", "餐後等待20-30分鐘", "只有睡前需要刷"], ans: 1 },
@@ -294,21 +290,14 @@ let currentQIndex = 0;
 function startQuiz() {
     const area = document.getElementById('quiz-display');
 
-    // 再按一次按鈕即關閉畫面與語音
     if (area.style.display === 'block') {
         hideAllAreas();
-        window.speechSynthesis.cancel();
-        currentSpeakingId = null;
         return;
     }
 
     hideAllAreas();
     area.style.display = 'block';
     currentQIndex = 0;
-    
-    // 關閉語音，不自動播放
-    window.speechSynthesis.cancel();
-    currentSpeakingId = null;
     
     showQuestion();
 }
@@ -323,17 +312,16 @@ function showQuestion() {
     qFeedback.style.display = 'none';
     qNext.style.display = 'none';
 
-    // 組合要朗讀的文字：包含題目和選項
     let speakText = "題目：" + qObj.q + "。選項有：";
     qObj.options.forEach((opt, i) => { 
         speakText += `第${i+1}個，${opt}。`; 
     });
 
-    // 【修正重點】渲染題目，並在右側加入朗讀按鈕
+    // 預設為 🔇
     qTitle.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <span>第 ${currentQIndex + 1} 題：${qObj.q}</span>
-            <button id="speak-btn-quiz" class="speak-btn" title="朗讀 / 停止" onclick="toggleSpeak('quiz', '${speakText}')">🔊</button>
+            <button id="speak-btn-quiz" class="speak-btn" title="朗讀 / 停止" onclick="toggleSpeak('quiz', '${speakText}')">🔇</button>
         </div>
     `;
 
@@ -353,10 +341,13 @@ function checkAnswer(selectedIndex, btnElement) {
     const qNext = document.getElementById('q-next');
     const allOptions = document.querySelectorAll('.option-btn');
 
-    // 點擊選項時，自動停止正在念的題目語音
+    // 點擊選項時，自動停止正在念的題目語音並恢復靜音圖示
     window.speechSynthesis.cancel();
     currentSpeakingId = null;
-    document.querySelectorAll('.speak-btn').forEach(b => b.classList.remove('speaking'));
+    document.querySelectorAll('.speak-btn').forEach(b => {
+        b.classList.remove('speaking');
+        b.innerText = '🔇';
+    });
 
     allOptions.forEach(btn => btn.disabled = true);
 
