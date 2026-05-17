@@ -200,7 +200,7 @@ async function openCameraUI(isSwitchingCamera = false) {
         // 稍微延遲等待相機硬體載入完成，再檢查是否支援曝光功能
         setTimeout(() => {
             checkExposureSupport();
-        }, 500);
+        }, 1000);
 
     } catch (err) {
         alert("無法開啟相機，請確認權限。\n錯誤: " + err.message);
@@ -238,9 +238,12 @@ function switchCamera() {
     openCameraUI(true); // 傳入 true，告訴程式「我只是在換鏡頭，不要把整個畫面收起來」
 }
 
-// 【新增】檢查手機是否支援曝光調整
+// 【修改】強化檢查手機是否支援曝光調整，並加入除錯訊息
 async function checkExposureSupport() {
-    if (!videoTrack) return;
+    if (!videoTrack) {
+        console.log("找不到影像軌道，無法檢查曝光功能。");
+        return;
+    }
     
     try {
         const capabilities = videoTrack.getCapabilities();
@@ -248,19 +251,25 @@ async function checkExposureSupport() {
         const wrapper = document.getElementById('exposure-wrapper');
         const slider = document.getElementById('exposure-slider');
 
+        console.log("當前鏡頭支援的功能：", capabilities); // 印出相機支援的所有功能
+
         // 偵測硬體與瀏覽器是否開放 exposureCompensation 權限
         if (capabilities.exposureCompensation) {
+            console.log("太棒了！此鏡頭支援曝光調整。");
             wrapper.style.display = 'flex'; // 支援的話，顯示亮度控制區塊
             slider.min = capabilities.exposureCompensation.min;
             slider.max = capabilities.exposureCompensation.max;
             slider.step = capabilities.exposureCompensation.step;
             slider.value = settings.exposureCompensation || 0;
         } else {
-            wrapper.style.display = 'none'; // 不支援的話，自動隱藏，避免長輩困惑
-            // 如果手機寬度夠，可以讓翻轉按鈕置中或變大，這裡保持原排版即可
+            console.log("抱歉，當前鏡頭或瀏覽器不支援網頁調整曝光。");
+            wrapper.style.display = 'none'; // 不支援的話，自動隱藏
+            
+            // 如果你想讓長輩知道為什麼沒看到亮度條，可以加上這行（選用）：
+            // alert("您目前使用的鏡頭不支援手動調整亮度喔！");
         }
     } catch (err) {
-        console.log("此設備不支援曝光查詢", err);
+        console.log("讀取相機設定失敗：", err);
     }
 }
 
