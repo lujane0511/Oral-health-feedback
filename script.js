@@ -129,14 +129,27 @@ function playBrushVideo() {
         <p style="margin-top: 10px; font-weight: bold;">${videoIntro}</p>
     `;
 }
+// ==========================================
+// 畫面控制
+// ==========================================
+function hideAllAreas() {
+    document.getElementById('interactive-display').style.display = 'none';
+    document.getElementById('quiz-display').style.display = 'none';
+    document.getElementById('camera-display').style.display = 'none';
+    
+    // 【新增】關閉功能時，恢復最上方的預設歡迎詞
+    document.getElementById('ai-msg').innerHTML = "阿公阿嬤早安！我是口腔小管家。<br>今天我們要一起守護牙齒喔！請點選下方功能：";
+    
+    stopCamera();
+}
 
 // ==========================================
-// 相機與 AI 分析功能
+// 相機與 AI 分析功能（包含每個階段的朗讀按鈕）
 // ==========================================
 async function openCameraUI() {
     const area = document.getElementById('camera-display');
 
-    // 【新增】再按一次按鈕即關閉畫面與語音
+    // 再按一次主按鈕即關閉畫面與語音
     if (area.style.display === 'block') {
         hideAllAreas();
         window.speechSynthesis.cancel();
@@ -146,9 +159,7 @@ async function openCameraUI() {
 
     hideAllAreas();
     area.style.display = 'block';
-    document.getElementById('ai-msg').innerText = "請將鏡頭對準口腔，按下拍照鈕進行分析。";
     document.getElementById('ai-result-box').style.display = 'none';
-
     document.getElementById('camera-container').style.display = 'block';
     document.getElementById('preview-container').style.display = 'none';
 
@@ -156,12 +167,11 @@ async function openCameraUI() {
     window.speechSynthesis.cancel();
     currentSpeakingId = null;
 
-    // 動態將朗讀按鈕加入相機區塊的標題
-    const titleEl = document.querySelector('.camera-title');
+    // 【修正重點】將朗讀按鈕直接放在最上方的提示框中，絕對不會被擋住！
     const introText = "請將鏡頭對準口腔，拍好照片後送出，讓我為您分析清潔狀況。";
-    titleEl.innerHTML = `
+    document.getElementById('ai-msg').innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span>📷 口腔清潔度 AI 分析</span>
+            <span>📷 ${introText}</span>
             <button id="speak-btn-camera" class="speak-btn" title="朗讀 / 停止" onclick="toggleSpeak('camera', '${introText}')">🔊</button>
         </div>
     `;
@@ -209,11 +219,17 @@ async function submitToGemini() {
     const resultBox = document.getElementById('ai-result-box');
     
     resultBox.style.display = 'block';
-    // 移除讀取時的自動語音
+    
+    const loadingText = "正在為您分析照片，請稍候。";
+    // 【修正重點】載入中的畫面也加入專屬朗讀按鈕
     resultBox.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <strong style="color: var(--primary);">⏳ AI 助教正在分析...</strong>
+            <button id="speak-btn-loading" class="speak-btn" title="朗讀 / 停止" onclick="toggleSpeak('loading', '${loadingText}')">🔊</button>
+        </div>
         <div style="text-align: center; padding: 20px;">
             <div class="loading-spinner"></div><br>
-            ⏳ AI 助教正在分析您的口腔照片，請稍候...
+            ${loadingText}
         </div>
     `;
 
@@ -245,16 +261,16 @@ async function submitToGemini() {
 
         const aiText = data.candidates[0].content.parts[0].text;
         
-        // 渲染結果並加上專屬的 AI 朗讀按鈕
+        // 【修正重點】結果出來後，排版加入結果專用的朗讀按鈕
         resultBox.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <strong style="font-size: 1.2rem;">🤖 AI 助教分析：</strong>
+                <strong style="font-size: 1.2rem; color: var(--primary);">🤖 AI 助教分析結果：</strong>
                 <button id="speak-btn-ai" class="speak-btn" title="朗讀 / 停止">🔊</button>
             </div>
-            <div>${aiText.replace(/\n/g, '<br>')}</div>
+            <div style="line-height: 1.6;">${aiText.replace(/\n/g, '<br>')}</div>
         `;
         
-        // 為了避免 AI 產生的文字裡有引號破壞 HTML，使用 onClick 綁定事件
+        // 綁定點擊事件，避免 AI 生成的標點符號破壞 HTML
         document.getElementById('speak-btn-ai').onclick = () => toggleSpeak('ai', aiText);
 
     } catch (error) {
@@ -263,8 +279,9 @@ async function submitToGemini() {
     }
 }
 
+
 // ==========================================
-// 測驗功能 (Quiz)
+// 測驗功能 (Quiz) - 全面加入朗讀鍵與防呆
 // ==========================================
 const quizData = [
     { q: "刷牙的最佳時機是？", options: ["吃完東西立刻刷", "餐後等待20-30分鐘", "只有睡前需要刷"], ans: 1 },
@@ -277,7 +294,7 @@ let currentQIndex = 0;
 function startQuiz() {
     const area = document.getElementById('quiz-display');
 
-    // 【新增】再按一次按鈕即關閉畫面與語音
+    // 再按一次按鈕即關閉畫面與語音
     if (area.style.display === 'block') {
         hideAllAreas();
         window.speechSynthesis.cancel();
@@ -312,7 +329,7 @@ function showQuestion() {
         speakText += `第${i+1}個，${opt}。`; 
     });
 
-    // 渲染題目，並在右側加入朗讀按鈕
+    // 【修正重點】渲染題目，並在右側加入朗讀按鈕
     qTitle.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <span>第 ${currentQIndex + 1} 題：${qObj.q}</span>
@@ -336,9 +353,10 @@ function checkAnswer(selectedIndex, btnElement) {
     const qNext = document.getElementById('q-next');
     const allOptions = document.querySelectorAll('.option-btn');
 
-    // 停止語音
+    // 點擊選項時，自動停止正在念的題目語音
     window.speechSynthesis.cancel();
     currentSpeakingId = null;
+    document.querySelectorAll('.speak-btn').forEach(b => b.classList.remove('speaking'));
 
     allOptions.forEach(btn => btn.disabled = true);
 
