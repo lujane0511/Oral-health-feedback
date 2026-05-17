@@ -71,10 +71,20 @@ function hideAllAreas() {
 // 互動功能
 // ==========================================
 function showInteractive(key) {
-    hideAllAreas();
     const area = document.getElementById('interactive-display');
+
+    // 【新增】檢查是否已經開啟這個區塊，如果已經開啟，再按一次主選單按鈕就會關閉
+    if (area.style.display === 'block' && area.getAttribute('data-current') === key) {
+        hideAllAreas();
+        window.speechSynthesis.cancel(); // 關閉畫面的同時，把語音也停掉
+        currentSpeakingId = null;
+        return;
+    }
+
+    // 如果還沒開啟，就先隱藏所有畫面，然後顯示這一個
+    hideAllAreas();
     area.style.display = 'block';
-    area.removeAttribute('data-current'); // 確保與影片狀態區隔
+    area.setAttribute('data-current', key); // 記住目前顯示的是哪一個功能 (tip, denture, 或 floss)
 
     // 切換頁面時，自動停止任何尚未結束的語音
     window.speechSynthesis.cancel();
@@ -84,7 +94,7 @@ function showInteractive(key) {
     const text = interData[key].text;
     const speakText = title + "。" + text;
 
-    // 將內容改為包含一個獨立的朗讀按鈕，排版參考影片區塊的做法
+    // 渲染內容：包含獨立的朗讀按鈕，且「不會」自動觸發語音
     area.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
             <h3 style="margin: 0; color: var(--primary);">${title}</h3>
@@ -92,8 +102,6 @@ function showInteractive(key) {
         </div>
         <p>${text}</p>
     `;
-    
-    // 這裡我們把原本的自動執行 toggleSpeak() 刪掉了，所以不會自動出聲！
 }
 
 function playBrushVideo() {
