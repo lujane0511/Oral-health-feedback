@@ -49,19 +49,21 @@ function toggleSpeak(id, txt) {
 // 3. 畫面控制
 // ==========================================
 function hideAllAreas() {
-    document.getElementById('interactive-display').style.display = 'none';
+    const interactive = document.getElementById('interactive-display');
+    interactive.style.display = 'none';
+    interactive.removeAttribute('data-current');   // 清除目前狀態
     document.getElementById('quiz-display').style.display = 'none';
     document.getElementById('camera-display').style.display = 'none';
     stopCamera();
 }
 
 // ==========================================
-// 4. 互動內容 - 點擊展開 / 再次點擊收合（重點功能）
+// 4. 互動內容 - 【真正支援點兩次收合】
 // ==========================================
 function showInteractive(key) {
     const area = document.getElementById('interactive-display');
     
-    // 如果目前顯示的就是這個 → 再次點擊就收合
+    // 【重點】點第二次同一個按鈕 → 收合
     if (area.style.display === 'block' && area.getAttribute('data-current') === key) {
         hideAllAreas();
         return;
@@ -83,7 +85,7 @@ function showInteractive(key) {
 function playBrushVideo() {
     const area = document.getElementById('interactive-display');
     
-    // 如果目前顯示的就是影片 → 再次點擊就收合
+    // 【重點】點第二次同一個按鈕 → 收合
     if (area.style.display === 'block' && area.getAttribute('data-current') === 'video') {
         hideAllAreas();
         return;
