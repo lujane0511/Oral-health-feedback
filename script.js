@@ -14,7 +14,9 @@ const interData = {
 
 let currentSpeakingId = null;
 let videoStream = null;
-
+// 【新增】記錄目前是前鏡頭還是後鏡頭，以及當前的影像軌道
+let currentFacingMode = 'environment'; // 預設為後鏡頭
+let videoTrack = null;
 // ==========================================
 // 語音功能
 // ==========================================
@@ -148,39 +150,129 @@ function playBrushVideo() {
 }
 
 // ==========================================
-// 相機與 AI 分析功能
+// 相機與 AI 分析功能（包含鏡頭翻轉與智慧曝光拉桿）
 // ==========================================
-async function openCameraUI() {
+async function openCameraUI(isSwitchingCamera = false) {
     const area = document.getElementById('camera-display');
 
-    if (area.style.display === 'block') {
+    // 如果不是正在切換鏡頭，才執行正常的「開關」邏輯
+    if (!isSwitchingCamera) {
+        if (area.style.display === 'block') {
+            hideAllAreas();
+            return;
+        }
         hideAllAreas();
-        return;
+        area.style.display = 'block';
+        document.getElementById('ai-result-box').style.display = 'none';
+        document.getElementById('camera-container').style.display = 'block';
+        document.getElementById('preview-container').style.display = 'none';
+
+        // 關閉先前的語音，不自動播放
+        window.speechSynthesis.cancel();
+        currentSpeakingId = null;
+
+        const introText = "請將鏡頭對準口腔，拍好照片後送出，讓我為您分析清潔狀況。";
+        document.getElementById('ai-msg').innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span>📷 ${introText}</span>
+                <button id="speak-btn-camera" class="speak-btn" title="朗讀 / 停止" onclick="toggleSpeak('camera', '${introText}')">🔇</button>
+            </div>
+        `;
     }
 
-    hideAllAreas();
-    area.style.display = 'block';
-    document.getElementById('ai-result-box').style.display = 'none';
-    document.getElementById('camera-container').style.display = 'block';
-    document.getElementById('preview-container').style.display = 'none';
-
-    const introText = "請將鏡頭對準口腔，拍好照片後送出，讓我為您分析清潔狀況。";
-    // 預設為 🔇
-    document.getElementById('ai-msg').innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span>📷 ${introText}</span>
-            <button id="speak-btn-camera" class="speak-btn" title="朗讀 / 停止" onclick="toggleSpeak('camera', '${introText}')">🔇</button>
-        </div>
-    `;
+    // 啟動相機前，先確保關閉舊的影像流
+    stopCamera();
 
     try {
         const video = document.getElementById('video-stream');
         videoStream = await navigator.mediaDevices.getUserMedia({ 
-            video: { facingMode: 'environment' } 
+            // 動態套用當前的鏡頭方向 (前或後)
+            video: { facingMode: currentFacingMode } 
         });
         video.srcObject = videoStream;
+        
+        // 取得影像軌道，用來控制曝光
+        videoTrack = videoStream.getVideoTracks()[0];
+
+        // 注入控制按鈕 (如果還沒建立的話)
+        injectCameraControls();
+
+        // 稍微延遲等待相機硬體載入完成，再檢查是否支援曝光功能
+        setTimeout(() => {
+            checkExposureSupport();
+        }, 500);
+
     } catch (err) {
         alert("無法開啟相機，請確認權限。\n錯誤: " + err.message);
+    }
+}
+
+// 【新增】動態插入翻轉鏡頭與曝光控制拉桿
+function injectCameraControls() {
+    if (document.getElementById('camera-controls-wrapper')) return; // 已經加過就跳過
+
+    const controls = document.createElement('div');
+    controls.id = 'camera-controls-wrapper';
+    controls.style = "display: flex; justify-content: space-between; align-items: stretch; margin-top: 15px; margin-bottom: 5px;";
+    
+    // 建立 UI：左邊翻轉按鈕，右邊亮度拉桿 (預設先隱藏)
+    controls.innerHTML = `
+        <button onclick="switchCamera()" class="camera-btn" style="width: 48%; background-color: #6c757d; margin-top: 0; padding: 10px; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; gap: 5px;">
+            🔄 翻轉鏡頭
+        </button>
+        <div id="exposure-wrapper" style="width: 48%; background: #f8f9fa; border: 2px solid #ddd; border-radius: 15px; padding: 0 10px; display: none; align-items: center; justify-content: center; gap: 5px; box-sizing: border-box;">
+            <span style="font-size: 1.2rem;">☀️</span>
+            <input type="range" id="exposure-slider" oninput="changeExposure(this.value)" style="width: 100%; cursor: pointer;">
+        </div>
+    `;
+    
+    // 將這個控制列插在影片(video-stream)和拍照按鈕(btn-capture)之間
+    const videoElement = document.getElementById('video-stream');
+    videoElement.parentNode.insertBefore(controls, videoElement.nextSibling);
+}
+
+// 【新增】切換前後鏡頭
+function switchCamera() {
+    // 翻轉邏輯：如果是後鏡頭就換前鏡頭，反之亦然
+    currentFacingMode = (currentFacingMode === 'environment') ? 'user' : 'environment';
+    openCameraUI(true); // 傳入 true，告訴程式「我只是在換鏡頭，不要把整個畫面收起來」
+}
+
+// 【新增】檢查手機是否支援曝光調整
+async function checkExposureSupport() {
+    if (!videoTrack) return;
+    
+    try {
+        const capabilities = videoTrack.getCapabilities();
+        const settings = videoTrack.getSettings();
+        const wrapper = document.getElementById('exposure-wrapper');
+        const slider = document.getElementById('exposure-slider');
+
+        // 偵測硬體與瀏覽器是否開放 exposureCompensation 權限
+        if (capabilities.exposureCompensation) {
+            wrapper.style.display = 'flex'; // 支援的話，顯示亮度控制區塊
+            slider.min = capabilities.exposureCompensation.min;
+            slider.max = capabilities.exposureCompensation.max;
+            slider.step = capabilities.exposureCompensation.step;
+            slider.value = settings.exposureCompensation || 0;
+        } else {
+            wrapper.style.display = 'none'; // 不支援的話，自動隱藏，避免長輩困惑
+            // 如果手機寬度夠，可以讓翻轉按鈕置中或變大，這裡保持原排版即可
+        }
+    } catch (err) {
+        console.log("此設備不支援曝光查詢", err);
+    }
+}
+
+// 【新增】滑動拉桿變更曝光值
+async function changeExposure(value) {
+    if (!videoTrack) return;
+    try {
+        await videoTrack.applyConstraints({
+            advanced: [{ exposureMode: 'manual', exposureCompensation: parseFloat(value) }]
+        });
+    } catch (err) {
+        console.log("設定亮度失敗", err);
     }
 }
 
